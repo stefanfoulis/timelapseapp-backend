@@ -1,7 +1,7 @@
 #<WARNING>
 #</WARNING>
 # <DOCKER_FROM>
-FROM aldryn/base-project:py3-3.24
+FROM aldryn/base-project:py3-3.25
 # </DOCKER_FROM>
 
 COPY stack/imageopt /stack/imageopt
