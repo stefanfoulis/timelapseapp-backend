@@ -46,8 +46,14 @@ class DayNode(DjangoObjectType):
         model = models.Day
         interfaces = (Node,)
 
-    images = DjangoFilterConnectionField(ImageNode)
-    key_frames = DjangoFilterConnectionField(ImageNode)
+    images = DjangoFilterConnectionField(
+        ImageNode,
+        filterset_class=schema_filters.ImageFilter,
+    )
+    key_frames = DjangoFilterConnectionField(
+        ImageNode,
+        filterset_class=schema_filters.ImageFilter,
+    )
 
     def resolve_images(self, args, context, info):
         return self.images.all()
@@ -98,7 +104,10 @@ class UserNode(DjangoObjectType):
     exclude_fields = (
         'password',
     )
-    images = DjangoFilterConnectionField(ImageNode)
+    images = DjangoFilterConnectionField(
+        ImageNode,
+        filterset_class=schema_filters.ImageFilter,
+    )
     latest_image = graphene.Field(ImageNode)
 
     @graphene.resolve_only_args

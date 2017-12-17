@@ -1,14 +1,14 @@
 version: "2"
 
 services:
-  base_build:
+  image:
     build: "."
     image: stefanfoulis/timelapseapp-backend:local
 
   base: &BASE
     image: stefanfoulis/timelapseapp-backend:local
     depends_on:
-      - "base_build"
+      - "image"
       - "db"
       - "rabbitmq"
     command: bash
@@ -16,8 +16,8 @@ services:
       - ".env-local"
       - ".env-local-secrets"
     volumes:
-      - "timelapseapp-backend-src-sync:/app:rw"
-      - "../timelapseapp-data:/data"
+      - ".:/app:delegated"
+      - "../timelapseapp-data:/data:delegated"
 
   web:
     <<: *BASE
@@ -38,7 +38,7 @@ services:
     command: aldryn-celery cam
 
   db:
-    image: postgres:9.4
+    image: postgres:9.6
     volumes:
       - ".:/app:rw"
     environment:
@@ -53,8 +53,3 @@ services:
       RABBITMQ_ERLANG_COOKIE: "secret cookie here"
       VIRTUAL_HOST: "timelapseapp-rabbitmq.divio.me"
       VIRTUAL_PORT: 15672
-
-
-volumes:
-  timelapseapp-backend-src-sync:
-    external: true
