@@ -35,19 +35,7 @@ THUMBNAIL_OPTIMIZE_COMMAND = {
 # disable multi-language support
 USE_I18N = False
 
-TIMELAPSE_STORAGE_DSN = env('TIMELAPSE_STORAGE_DSN')
-if TIMELAPSE_STORAGE_DSN:
-    import timelapse_manager.storage
-    locals().update(
-        timelapse_manager.storage.parse_storage_url(
-            TIMELAPSE_STORAGE_DSN,
-            aws_setting_prefix='AWS_TIMELAPSE_',
-            storage_setting_name='TIMELAPSE_FILE_STORAGE',
-        )
-    )
-else:
-    TIMELAPSE_FILE_STORAGE = 'timelapse_manager.storage.FileSystemTimelapseStorage'
-
+TIMELAPSE_STORAGE_DSN = env('TIMELAPSE_STORAGE_DSN', 'file:///data/timelapse')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import
-
 import datetime
 from django.contrib import admin, messages
 from django.core.urlresolvers import reverse
@@ -16,6 +14,7 @@ class CameraAdmin(admin.ModelAdmin):
     actions = (
         'create_days_for_existing_images_action',
         'create_days_for_oldest_existing_image_until_today_action',
+        'discover_images_action',
     )
 
     def create_days_for_existing_images_action(self, request, queryset):

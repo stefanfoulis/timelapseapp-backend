@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import
-
 import datetime
 
 import collections
@@ -77,19 +75,28 @@ def discover_images(
     directory relative to default storage root
     """
     sizes = sizes or ('original', '640x480', '320x240', '160x120')
+    limit_camera_names = [
+        camera.name if isinstance(camera, models.Camera) else camera
+        for camera in limit_cameras
+    ]
     for camera_name in storage.listdir(basedir)[0]:
-        if limit_cameras and camera_name not in limit_cameras:
+        print(camera_name)
+        if limit_camera_names and camera_name not in limit_camera_names:
             continue
         try:
             camera = models.Camera.objects.get(name=camera_name)
         except models.Camera.DoesNotExist:
             continue
+        print(camera)
         camera_basedir = os.path.join(basedir, camera_name)
+        print(camera_basedir)
         days = set()
         for size_name in storage.listdir(camera_basedir)[0]:
+            print(size_name)
             if size_name not in sizes:
                 continue
             size_basedir = os.path.join(camera_basedir, size_name)
+            print(size_basedir)
             try:
                 day_names = storage.listdir(size_basedir)[0]
             except OSError:
@@ -99,10 +106,12 @@ def discover_images(
                 # S3, as it returns False for directories.
                 day_names = []
             for day_name in day_names:
+                print(day_name)
                 if limit_days and not day_name in limit_days:
                     continue
                 days.add(day_name)
         for day_name in days:
+            print(day_name)
             discover_images_on_day(
                 camera=camera,
                 day_name=day_name,

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import
 from rest_framework import response, routers, serializers, viewsets, views, mixins
 from . import models
 

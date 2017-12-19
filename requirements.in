@@ -22,3 +22,6 @@ django-crispy-forms
 graphene>=1.0
 django-graphiql
 graphene-django
+
+# boto3
+boto3

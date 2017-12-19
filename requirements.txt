@@ -13,15 +13,17 @@ https://control.divio.com/api/v1/apps/serve/aldryn-sso/1.1.16/dbe0c45a-c981-4beb
 amqp==1.4.9               # via kombu
 anyjson==0.3.3            # via kombu
 argparse==1.4.0           # via djeese-fs
-asn1crypto==0.23.0        # via cryptography
+asn1crypto==0.24.0        # via cryptography
 billiard==3.3.0.23        # via celery
+boto3==1.5.1
 boto==2.48.0
+botocore==1.8.15          # via boto3, s3transfer
 celery==3.1.25            # via django-celery
-certifi==2017.7.27.1      # via djeese-fs, opbeat, requests
+certifi==2017.11.5        # via djeese-fs, opbeat, requests
 cffi==1.11.2              # via cryptography
 chardet==3.0.4            # via djeese-fs, requests
 click==6.7                # via aldryn-client
-cryptography==2.1.2       # via pyopenssl
+cryptography==2.1.4       # via pyopenssl
 dateparser==0.6.0
 decorator==4.0.11         # via ipython, moviepy, traitlets
 dj-database-url==0.4.2
@@ -30,7 +32,7 @@ dj-redis-url==0.1.4
 dj-static==0.0.6
 django-appconf==1.0.2     # via aldryn-sites
 django-cache-url==2.0.0
-django-celery==3.2.1
+django-celery==3.2.2
 django-chainable-manager==0.5.0
 django-crispy-forms==1.7.0
 django-extended-choices==1.1.2
@@ -41,13 +43,14 @@ django-simple-sso==0.11
 django-storages==1.6.5
 django-taggit==0.22.1
 django==1.11.5            # via aldryn-sites, django-celery, django-chainable-manager, django-graphiql, easy-thumbnails, graphene-django
-djangorestframework==3.7.1
+djangorestframework==3.7.3
 djeese-fs==0.1.21
-easy-thumbnails==2.4.2
+docutils==0.14            # via botocore
+easy-thumbnails==2.5
 furl==1.0.1
 future==0.16.0            # via django-extended-choices, parsedatetime
 graphene-django==2.0.0
-graphene==2.0
+graphene==2.0.1
 graphql-core==2.0         # via graphene, graphql-relay
 graphql-relay==0.4.5      # via graphene
 idna==2.6                 # via cryptography, requests
@@ -57,36 +60,38 @@ ipython-genutils==0.2.0   # via traitlets
 ipython==6.2.1
 iso8601==0.1.12           # via graphene-django
 itsdangerous==0.24        # via django-simple-sso, webservices
-jedi==0.11.0              # via ipython
+jedi==0.11.1              # via ipython
+jmespath==0.9.3           # via boto3, botocore
 kombu==3.0.37             # via celery
-markdown==2.6.9
+markdown==2.6.10
 moviepy==0.2.3.2
 ndg-httpsclient==0.4.3
 numpy==1.13.3             # via imageio, moviepy
 olefile==0.44             # via pillow
-opbeat==3.5.3
+opbeat==3.6.0
 orderedmultidict==0.7.11  # via furl
 parsedatetime==2.4        # via recurrent
-parso==0.1.0              # via jedi
-pexpect==4.2.1            # via ipython
+parso==0.1.1              # via jedi
+pexpect==4.3.1            # via ipython
 pickleshare==0.7.4        # via ipython
 pillow==4.3.0             # via easy-thumbnails, imageio
 promise==2.1              # via graphene, graphene-django, graphql-core, graphql-relay
 prompt-toolkit==1.0.15    # via ipython
 psycopg2==2.7.3.2
 ptyprocess==0.5.2         # via pexpect
-pyasn1==0.3.7             # via ndg-httpsclient
+pyasn1==0.4.2             # via ndg-httpsclient
 pycparser==2.18           # via cffi
 pygments==2.2.0           # via ipython
-pyopenssl==17.3.0         # via ndg-httpsclient
-python-dateutil==2.6.1    # via dateparser
-pytz==2017.2              # via celery, dateparser, django, tzlocal
-raven==6.2.1
+pyopenssl==17.5.0         # via ndg-httpsclient
+python-dateutil==2.6.1    # via botocore, dateparser
+pytz==2017.3              # via celery, dateparser, django, tzlocal
+raven==6.4.0
 recurrent==0.2.5
-regex==2017.9.23          # via dateparser
+regex==2017.12.9          # via dateparser
 requests==2.18.4          # via aldryn-client
-ruamel.yaml==0.15.34      # via dateparser
+ruamel.yaml==0.15.35      # via dateparser
 rx==1.6.0                 # via graphql-core
+s3transfer==0.1.12        # via boto3
 simplegeneric==0.8.1      # via ipython
 singledispatch==3.4.0.3   # via graphene-django
 six==1.11.0               # via aldryn-client, cryptography, furl, graphene, graphene-django, graphql-core, graphql-relay, orderedmultidict, promise, prompt-toolkit, pyopenssl, python-dateutil, singledispatch, structlog, traitlets
@@ -96,7 +101,7 @@ tabulate==0.8.1           # via aldryn-client
 tqdm==4.11.2              # via moviepy
 traitlets==4.3.2          # via ipython
 typing==3.6.2             # via promise
-tzlocal==1.4              # via dateparser
+tzlocal==1.5.1            # via dateparser
 urllib3==1.22             # via opbeat, requests
 uwsgi==2.0.15
 wcwidth==0.1.7            # via prompt-toolkit

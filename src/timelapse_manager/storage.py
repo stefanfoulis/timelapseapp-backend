@@ -1,159 +1,192 @@
 # -*- coding: utf-8 -*-
 import os
+import six
+import furl
+import posixpath
+
+import boto3
 
 from django.conf import settings
 from django.core.files.storage import get_storage_class, FileSystemStorage
 from django.utils.functional import LazyObject
 from django.utils.text import slugify
 
-from six.moves.urllib import parse
-from storages.backends import s3boto
-import yurl
+import django.core.files.storage
+import storages.backends.s3boto3
 
 
 SCHEMES = {
-    's3': 'timelapse_manager.storage.S3TimelapseStorage',
-    'djfs': 'fs.django_storage.DjeeseFSStorage',
-    'file': 'timelapse_manager.storage.FileSystemTimelapseStorage',
+    's3': 'timelapse_manager.storage.S3Storage',
+    'file': 'timelapse_manager.storage.FileSystemStorage',
 }
 
-parse.uses_netloc.append('s3')
-parse.uses_netloc.append('djfs')
+
+class FileSystemStorage(django.core.files.storage.FileSystemStorage):
+    def __init__(self, dsn):
+        base_url = dsn.args.get('url')
+        super(FileSystemStorage, self).__init__(
+            location=six.text_type(dsn.path),
+            base_url=base_url,
+        )
+        if base_url is None:
+            self.base_url = None
 
 
-class S3Storage(s3boto.S3BotoStorage):
-    aws_setting_prefix = 'AWS_MEDIA_'
+class S3Storage(storages.backends.s3boto3.S3Boto3Storage):
+    addressing_styles = {
+        'subdomain': 'virtual',
+        'ordinary': 'path',
+    }
 
-    def get_setting(self, name):
-        return getattr(settings, '{}{}'.format(self.aws_setting_prefix, name))
+    def __init__(self, dsn):
+        protocols = dsn.scheme.split('+')
+        if len(protocols) >= 2:
+            # s3+http:// -> protocol=http
+            # s3+https:// -> protocol=https
+            # s3+xyz+https:// -> protocol=https
+            protocol = protocols[-1]
+        else:
+            # s3:// -> protocol=https
+            protocol = 'https'
 
-    def __init__(self):
-        # We cannot use a function call or a partial here. Instead, we have to
-        # create a subclass because django tries to recreate a new object by
-        # calling the __init__ of the returned object (with no arguments).
-        super(S3Storage, self).__init__(
-            access_key=self.get_setting('ACCESS_KEY_ID'),
-            secret_key=self.get_setting('SECRET_ACCESS_KEY'),
-            bucket_name=self.get_setting('STORAGE_BUCKET_NAME'),
-            location=self.get_setting('BUCKET_PREFIX'),
-            host=self.get_setting('STORAGE_HOST'),
-            # Setting an ACL requires us to grant the user the PutObjectAcl
-            # permission as well, even if it matches the default bucket ACL.
-            # XXX: Ideally we would thus set it to `None`, but due to how
-            # easy_thumbnails works internally, that causes thumbnail
-            # generation to fail...
-            default_acl='public-read',
+        endpoint_url = furl.furl().set(
+            scheme=protocol,
+            host=dsn.host,
+            port=dsn.port,
+        )
+        bucket_name = dsn.args.get('bucket_name')
+        if bucket_name is None:
+            # AWS style bucket name extraction
+            bucket_name, endpoint_url.host = endpoint_url.host.split('.', 1)
+
+        addressing_style = dsn.args.get('calling_format')
+        if addressing_style:
+            addressing_style = self.addressing_styles[addressing_style]
+        else:
+            addressing_style = 'virtual'
+        config = dict(
+            access_key=dsn.username,
+            secret_key=dsn.password,
+            bucket_name=bucket_name,
+            endpoint_url=endpoint_url.url,
+            addressing_style=addressing_style,
+            location=six.text_type(dsn.path).lstrip('/'),
+            custom_domain=furl.furl(dsn.args.get('url')).netloc,
+            default_acl=dsn.args.get('acl', 'private'),
             querystring_auth=False,
         )
+        if dsn.args.get('region_name'):
+            config['region_name'] = dsn.args.get('region_name')
+
+        if dsn.args.get('auth'):
+            config['signature_version'] = dsn.args.get('auth')
+        from pprint import pprint as pp
+        pp(config)
+        super(S3Storage, self).__init__(**config)
 
     def listdir(self, path):
-        # Implementation stolen from django-s3-storage:
-        # https://github.com/etianen/django-s3-storage/blob/e8c1cb2d2b65c8c7047c7851c65af31f091312c9/django_s3_storage/storage.py#L249-L268
-        # This one actually works with large buckets.
-        path = self._normalize_name(self._clean_name(path))
-        # for the bucket.list and logic below name needs to end in /
-        # But for the root path "" we leave it as an empty string
-        if path and not path.endswith('/'):
-            path += '/'
-
+        # Stolen and slightly adapted from
+        # https://github.com/etianen/django-s3-storage/blob/24fde40dfdb7e7125827e5e9f39239bd79b2f6f7/django_s3_storage/storage.py#L299-L317
+        # The default implementation of listdir will take minutes to list 1
+        # directory in the root of a bucket if the bucket has millions of
+        # objects.
+        # This version is efficient.
+        path = self._get_key_name(path)
+        path = "" if path == "." else path + "/"
         # Look through the paths, parsing out directories and paths.
-        files = set()
-        dirs = set()
-        for key in self.bucket.list(prefix=path, delimiter="/"):
-            key_path = key.name[len(path):]
-            if key_path.endswith("/"):
-                dirs.add(key_path[:-1])
-            else:
-                files.add(key_path)
+        files = []
+        dirs = []
+        paginator = self.client.get_paginator("list_objects_v2")
+        pages = paginator.paginate(
+            Bucket=self.bucket_name,
+            Delimiter="/",
+            Prefix=path,
+        )
+        for page in pages:
+            for entry in page.get("Contents", ()):
+                files.append(posixpath.relpath(entry["Key"], path))
+            for entry in page.get("CommonPrefixes", ()):
+                dirs.append(posixpath.relpath(entry["Prefix"], path))
         # All done!
-        return list(dirs), list(files)
+        return dirs, files
+
+    @property
+    def client(self):
+        # Variant of
+        # https://github.com/etianen/django-s3-storage/blob/24fde40dfdb7e7125827e5e9f39239bd79b2f6f7/django_s3_storage/storage.py#L137-L140
+        # because our custom listdir needs it.
+        client = getattr(self._connections, 'client', None)
+        if client is None:
+            self._connections.client = boto3.client(
+                's3',
+                aws_access_key_id=self.access_key,
+                aws_secret_access_key=self.secret_key,
+                aws_session_token=self.security_token,
+                region_name=self.region_name,
+                use_ssl=self.use_ssl,
+                endpoint_url=self.endpoint_url,
+                config=self.config
+            )
+        return self._connections.client
+
+    def _get_key_name(self, name):
+        # Stolen from
+        # https://github.com/etianen/django-s3-storage/blob/24fde40dfdb7e7125827e5e9f39239bd79b2f6f7/django_s3_storage/storage.py#L166-L169
+        # for listdir. Adapted slightly.
+        if name.startswith("/"):
+            name = name[1:]
+        return posixpath.normpath(
+            posixpath.join(
+                self.location,
+                name.replace(os.sep, "/"),
+            ),
+        )
 
 
-class S3TimelapseStorage(S3Storage):
-    aws_setting_prefix = 'AWS_TIMELAPSE_'
+class NotImplementedStorage(django.core.files.storage.Storage):
+    def open(self, name, mode='rb'):
+        raise NotImplementedError
+
+    def save(self, name, content, max_length=None):
+        raise NotImplementedError
+
+    def get_valid_name(self, name):
+        raise NotImplementedError
+
+    def get_available_name(self, name, max_length=None):
+        raise NotImplementedError
 
 
-class FileSystemTimelapseStorage(FileSystemStorage):
-    def __init__(self, **kwargs):
-        location = kwargs.get('location', None)
-        if location is None:
-            location = os.path.join(settings.MEDIA_ROOT, 'timelapse-images')
-        base_url = kwargs.get('base_url', None)
-        if base_url is None:
-            base_url = settings.MEDIA_URL + 'timelapse-images/'
-        kwargs['location'] = location
-        kwargs['base_url'] = base_url
-        super(FileSystemTimelapseStorage, self).__init__(**kwargs)
-
-
-class TimelapseStorage(LazyObject):
+class _DSNConfiguredStorage(LazyObject):
     def _setup(self):
-        self._wrapped = get_storage_class(settings.TIMELAPSE_FILE_STORAGE)()
+        dsn = getattr(settings, self._setting_name, None)
+        if not dsn:
+            self._wrapped = NotImplementedStorage()
+        else:
+            url = furl.furl(dsn)
+            backend_name = url.scheme.split('+')[0]
+            storage_class = django.core.files.storage.get_storage_class(SCHEMES[backend_name])
+            # Django >= 1.9 now knows about LazyObject and sets them up before
+            # serializing them. To work around this behavior, the storage class
+            # itself needs to be deconstructible.
+            storage_class = type(storage_class.__name__, (storage_class,), {
+                'deconstruct': self._deconstructor,
+            })
+            self._wrapped = storage_class(url)
 
-timelapse_storage = TimelapseStorage()
+
+def dsn_configured_storage(setting_name):
+    path = '{}.{}'.format(
+        dsn_configured_storage.__module__,
+        dsn_configured_storage.__name__,
+    )
+    return type('DSNConfiguredStorage', (_DSNConfiguredStorage,), {
+        '_setting_name': setting_name,
+        '_deconstructor': lambda self: (path, [setting_name], {}),
+    })()
 
 
-def parse_storage_url(url, aws_setting_prefix='AWS_MEDIA_', djeese_setting_prefix='DJEESE_', storage_setting_name='DEFAULT_FILE_STORAGE'):
-    settings = {}
-    url = parse.urlparse(url)
-
-    scheme = url.scheme.split('+', 1)
-    if storage_setting_name:
-        settings[storage_setting_name] = SCHEMES[scheme[0]]
-
-    if scheme[0] == 's3':
-        os.environ['S3_USE_SIGV4'] = 'True'
-        config = {
-            'ACCESS_KEY_ID': parse.unquote(url.username or ''),
-            'SECRET_ACCESS_KEY': parse.unquote(url.password or ''),
-            'STORAGE_BUCKET_NAME': url.hostname.split('.', 1)[0],
-            'STORAGE_HOST': url.hostname.split('.', 1)[1],
-            'BUCKET_PREFIX': url.path.lstrip('/'),
-        }
-        media_url = yurl.URL(
-            scheme='https',
-            host='.'.join([
-                config['STORAGE_BUCKET_NAME'],
-                config['STORAGE_HOST'],
-            ]),
-            path=config['BUCKET_PREFIX'],
-        )
-        settings['MEDIA_URL'] = media_url.as_string()
-        settings.update({
-            '{}{}'.format(aws_setting_prefix, key): value
-            for key, value in config.items()
-        })
-    elif scheme[0] == 'djfs':
-        hostname = ('{}:{}'.format(url.hostname, url.port)
-                    if url.port else url.hostname)
-        config = {
-            'STORAGE_ID': url.username or '',
-            'STORAGE_KEY': url.password or '',
-            'STORAGE_HOST': parse.urlunparse((
-                scheme[1],
-                hostname,
-                url.path,
-                url.params,
-                url.query,
-                url.fragment,
-            )),
-        }
-        media_url = yurl.URL(
-            scheme=scheme[1],
-            host=url.hostname,
-            path=url.path,
-            port=url.port or '',
-        )
-        settings['MEDIA_URL'] = media_url.as_string()
-        settings.update({
-            '{}{}'.format(djeese_setting_prefix, key): value
-            for key, value in config.items()
-        })
-    if settings['MEDIA_URL'] and not settings['MEDIA_URL'].endswith('/'):
-        # Django (or something else?) silently sets MEDIA_URL to an empty
-        # string if it does not end with a '/'
-        settings['MEDIA_URL'] = '{}/'.format(settings['MEDIA_URL'])
-    return settings
+timelapse_storage = dsn_configured_storage('TIMELAPSE_STORAGE_DSN')
 
 
 def structured_data_to_image_filename(data):
@@ -191,7 +224,3 @@ def upload_to_movie_rendering(instance, filename):
         filename=filename,
         camera=instance.movie.camera.name,
     )
-
-
-def default_timelapse_storage():
-    pass

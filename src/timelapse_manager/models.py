@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import
-
 import uuid
 from functools import partial
 
@@ -11,6 +9,7 @@ from django.utils.encoding import python_2_unicode_compatible
 
 from chainablemanager.manager import ChainableManager
 
+from timelapse_manager.storage import dsn_configured_storage
 from . import storage
 
 
@@ -118,24 +117,24 @@ class Image(UUIDAuditedModel):
         null=True, blank=True, default=None, db_index=True)
     original = models.ImageField(
         null=True, blank=True, default='', max_length=255, db_index=True,
-        storage=storage.timelapse_storage)
+        storage=dsn_configured_storage('TIMELAPSE_STORAGE_DSN'))
     original_md5 = models.CharField(
         max_length=32, blank=True, default='', db_index=True)
     scaled_at_160x120 = models.ImageField(
         null=True, blank=True, default='', max_length=255, db_index=True,
-        storage=storage.timelapse_storage,
+        storage=dsn_configured_storage('TIMELAPSE_STORAGE_DSN'),
         upload_to=partial(storage.upload_to_thumbnail, size='160x120'))
     scaled_at_160x120_md5 = models.CharField(
         max_length=32, blank=True, default='', db_index=True)
     scaled_at_320x240 = models.ImageField(
         null=True, blank=True, default='', max_length=255, db_index=True,
-        storage=storage.timelapse_storage,
+        storage=dsn_configured_storage('TIMELAPSE_STORAGE_DSN'),
         upload_to=partial(storage.upload_to_thumbnail, size='320x240'))
     scaled_at_320x240_md5 = models.CharField(
         max_length=32, blank=True, default='', db_index=True)
     scaled_at_640x480 = models.ImageField(
         null=True, blank=True, default='', max_length=255, db_index=True,
-        storage=storage.timelapse_storage,
+        storage=dsn_configured_storage('TIMELAPSE_STORAGE_DSN'),
         upload_to=partial(storage.upload_to_thumbnail, size='640x480'))
     scaled_at_640x480_md5 = models.CharField(
         max_length=32, blank=True, default='', db_index=True)
@@ -405,7 +404,7 @@ class MovieRendering(UUIDAuditedModel):
     format = models.CharField(default='mp4', max_length=255)
     file = models.FileField(
         null=True, blank=True, default='', max_length=255, db_index=True,
-        storage=storage.timelapse_storage,
+        storage=dsn_configured_storage('TIMELAPSE_STORAGE_DSN'),
         upload_to=storage.upload_to_movie_rendering,
     )
     file_md5 = models.CharField(
