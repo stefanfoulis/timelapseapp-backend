@@ -100,6 +100,7 @@ class ImageAdmin(admin.ModelAdmin):
 class DayAdmin(admin.ModelAdmin):
     list_display = (
         'date',
+        'camera',
         'cover_img',
         'keyframes_img',
         'image_counts_html',
@@ -121,6 +122,9 @@ class DayAdmin(admin.ModelAdmin):
     )
     ordering = (
         '-date',
+    )
+    list_filter = (
+        'camera',
     )
     date_hierarchy = 'date'
 
