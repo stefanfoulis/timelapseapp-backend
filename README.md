@@ -1,6 +1,6 @@
 # Timelapse Manager Backend
 
-Django / GraphQL
+Django / GraphQL backend api server
 
 
 ## Configuration
