@@ -19,37 +19,37 @@ services:
       - ".:/app:delegated"
       - "../timelapseapp-data:/data:delegated"
 
+  cli:
+    <<: *BASE
+    command: bash
+
   web:
     <<: *BASE
     command: python manage.py runserver 0.0.0.0:80
     environment:
-      VIRTUAL_HOST: timelapseapp-backend.divio.me
+      VIRTUAL_HOST: timelapseapp-backend.local.foul.is
 
   worker:
     <<: *BASE
-    command: aldryn-celery worker
+    command: django-celery-addon worker
 
   beat:
     <<: *BASE
-    command: aldryn-celery beat
-
-  cam:
-    <<: *BASE
-    command: aldryn-celery cam
+    command: django-celery-addon beat
 
   db:
-    image: postgres:9.6
+    image: postgres:9.6-alpine
     volumes:
       - ".:/app:rw"
     environment:
       POSTGRES_DB: db
 
   rabbitmq:
-    image: rabbitmq:3.5-management
+    image: rabbitmq:3.7-management-alpine
     hostname: rabbitmq
     expose:
       - "15672"
     environment:
       RABBITMQ_ERLANG_COOKIE: "secret cookie here"
-      VIRTUAL_HOST: "timelapseapp-rabbitmq.divio.me"
+      VIRTUAL_HOST: "timelapseapp-rabbitmq.local.foul.is"
       VIRTUAL_PORT: 15672

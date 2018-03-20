@@ -4,15 +4,15 @@ from getenv import env
 
 INSTALLED_ADDONS = [
     # <INSTALLED_ADDONS>  # Warning: text inside the INSTALLED_ADDONS tags is auto-generated. Manual changes will be overwritten.
-    'aldryn-addons',
-    'aldryn-django',
-    'aldryn-sso',
-    'aldryn-celery',
+    'django_addons',
+    'django_addon',
+    # 'aldryn_sso',
+    'django_celery_addon',
     # </INSTALLED_ADDONS>
 ]
 
-import aldryn_addons.settings
-aldryn_addons.settings.load(locals())
+import django_addons.settings
+django_addons.settings.load(locals())
 
 # all django settings can be altered here
 
@@ -58,11 +58,11 @@ REST_FRAMEWORK = {
 }
 
 
-from aldryn_django import storage
-for storage_backend in storage.SCHEMES.values():
-    if storage_backend == DEFAULT_FILE_STORAGE:
-        THUMBNAIL_DEFAULT_STORAGE = storage_backend
-        break
+# from aldryn_django import storage
+# for storage_backend in storage.SCHEMES.values():
+#     if storage_backend == DEFAULT_FILE_STORAGE:
+#         THUMBNAIL_DEFAULT_STORAGE = storage_backend
+#         break
 
 LOGGING['loggers']['celery'] = {
     'handlers': ['console'],

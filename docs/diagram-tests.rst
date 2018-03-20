@@ -1,5 +1,5 @@
-Diagrams
-========
+Diagram Tests
+=============
 
 .. uml::
 

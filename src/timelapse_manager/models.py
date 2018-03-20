@@ -4,10 +4,8 @@ from functools import partial
 
 import datetime
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.utils.encoding import python_2_unicode_compatible
-
-from chainablemanager.manager import ChainableManager
 
 from timelapse_manager.storage import dsn_configured_storage
 from . import storage
@@ -51,32 +49,31 @@ class Camera(UUIDAuditedModel):
         actions.discover_images(limit_cameras=[self])
 
 
-class ImageManager(ChainableManager):
-    class QuerySetMixin(object):
-        def with_missing_thumbnails(self, camera=None):
-            qs = self.filter(original__isnull=False)
-            if camera:
-                qs = qs.filter(camera=camera)
-            qs = qs.filter((
-                Q(scaled_at_160x120='') |
-                Q(scaled_at_320x240='') |
-                Q(scaled_at_640x480='')
-            ))
-            return qs
+class ImageManager(QuerySet):
+    def with_missing_thumbnails(self, camera=None):
+        qs = self.filter(original__isnull=False)
+        if camera:
+            qs = qs.filter(camera=camera)
+        qs = qs.filter((
+            Q(scaled_at_160x120='') |
+            Q(scaled_at_320x240='') |
+            Q(scaled_at_640x480='')
+        ))
+        return qs
 
-        def create_missing_thumbnails(self, camera=None):
-            for img in self.with_missing_thumbnails(camera=camera).iterator():
-                img.create_thumbnails()
+    def create_missing_thumbnails(self, camera=None):
+        for img in self.with_missing_thumbnails(camera=camera).iterator():
+            img.create_thumbnails()
 
-        def with_faulty_scaled_filenames(self):
-            return self.filter(
-                Q(scaled_at_160x120__icontains='.original.') |
-                Q(scaled_at_160x120__icontains='.JPG.') |
-                Q(scaled_at_320x240__icontains='.original.') |
-                Q(scaled_at_320x240__icontains='.JPG.') |
-                Q(scaled_at_640x480__icontains='.original.') |
-                Q(scaled_at_640x480__icontains='.JPG.')
-            )
+    def with_faulty_scaled_filenames(self):
+        return self.filter(
+            Q(scaled_at_160x120__icontains='.original.') |
+            Q(scaled_at_160x120__icontains='.JPG.') |
+            Q(scaled_at_320x240__icontains='.original.') |
+            Q(scaled_at_320x240__icontains='.JPG.') |
+            Q(scaled_at_640x480__icontains='.original.') |
+            Q(scaled_at_640x480__icontains='.JPG.')
+        )
 
     def pick_closest(self, camera, shot_at, max_difference=None):
         """
@@ -110,7 +107,7 @@ class Image(UUIDAuditedModel):
         (size, size)
         for size in sizes
     ]
-    camera = models.ForeignKey(Camera, related_name='images')
+    camera = models.ForeignKey(Camera, related_name='images', on_delete=models.PROTECT)
     name = models.CharField(
         max_length=255, blank=True, default='', db_index=True)
     shot_at = models.DateTimeField(
@@ -139,7 +136,7 @@ class Image(UUIDAuditedModel):
     scaled_at_640x480_md5 = models.CharField(
         max_length=32, blank=True, default='', db_index=True)
 
-    objects = ImageManager()
+    objects = ImageManager.as_manager()
 
     class Meta:
         unique_together = (
@@ -177,7 +174,7 @@ class Image(UUIDAuditedModel):
 
 @python_2_unicode_compatible
 class Tag(UUIDAuditedModel):
-    camera = models.ForeignKey(Camera, related_name='tags')
+    camera = models.ForeignKey(Camera, related_name='tags', on_delete=models.PROTECT)
     name = models.CharField(max_length=255)
     start_at = models.DateTimeField()
     end_at = models.DateTimeField()
@@ -239,31 +236,31 @@ class TagInfo(UUIDAuditedModel):
         return Tag.objects.filter(name=self.name)
 
 
-class DayManager(ChainableManager):
-    class QuerySetMixin(object):
-        def create_keyframe_thumbnails(self, force=False):
-            for day in self:
-                day.create_keyframe_thumbnails(force=force)
+class DayManager(QuerySet):
+    def create_keyframe_thumbnails(self, force=False):
+        for day in self:
+            day.create_keyframe_thumbnails(force=force)
 
-    def create_for_range(self, camera, start_on, end_on=None):
-        if end_on is None:
-            end_on = start_on
-        current_day = start_on
-        while current_day <= end_on:
-            self.get_or_create(camera=camera, date=current_day)
-            current_day = current_day + datetime.timedelta(days=1)
+
+def create_for_range(self, camera, start_on, end_on=None):
+    if end_on is None:
+        end_on = start_on
+    current_day = start_on
+    while current_day <= end_on:
+        self.get_or_create(camera=camera, date=current_day)
+        current_day = current_day + datetime.timedelta(days=1)
 
 
 @python_2_unicode_compatible
 class Day(UUIDAuditedModel):
-    camera = models.ForeignKey(Camera, related_name='days')
+    camera = models.ForeignKey(Camera, related_name='days', on_delete=models.PROTECT)
     date = models.DateField(db_index=True)
     cover = models.ForeignKey(
-        Image, null=True, blank=True, related_name='cover_for_days')
+        Image, null=True, blank=True, related_name='cover_for_days', on_delete=models.PROTECT)
     key_frames = models.ManyToManyField(
         Image, blank=True, related_name='keyframe_for_days')
 
-    objects = DayManager()
+    objects = DayManager.as_manager()
 
     class Meta:
         ordering = ('date',)
@@ -312,7 +309,7 @@ class Day(UUIDAuditedModel):
 
 @python_2_unicode_compatible
 class Movie(UUIDAuditedModel):
-    camera = models.ForeignKey(Camera, related_name='movies')
+    camera = models.ForeignKey(Camera, related_name='movies', on_delete=models.PROTECT)
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, default=None)
 
@@ -395,7 +392,7 @@ class Movie(UUIDAuditedModel):
 
 @python_2_unicode_compatible
 class MovieRendering(UUIDAuditedModel):
-    movie = models.ForeignKey(Movie, related_name='renderings')
+    movie = models.ForeignKey(Movie, related_name='renderings', on_delete=models.PROTECT)
     size = models.CharField(
         max_length=32, choices=[(imgsize, imgsize) for imgsize in Image.sizes],
         default='160x120',
@@ -443,11 +440,11 @@ class MovieRendering(UUIDAuditedModel):
 
 
 class Frame(UUIDAuditedModel):
-    movie_rendering = models.ForeignKey(MovieRendering, related_name='frames')
+    movie_rendering = models.ForeignKey(MovieRendering, related_name='frames', on_delete=models.PROTECT)
     number = models.PositiveIntegerField()
     realtime_timestamp = models.DateTimeField()
     image = models.ForeignKey(
-        Image, related_name='frames', null=True, blank=True)
+        Image, related_name='frames', null=True, blank=True, on_delete=models.PROTECT)
 
     class Meta:
         ordering = (

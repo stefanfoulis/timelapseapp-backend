@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os
-from aldryn_django import startup
+from django_addon import startup
 
 
 if __name__ == "__main__":

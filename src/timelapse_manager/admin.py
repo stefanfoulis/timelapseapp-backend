@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 from django.contrib import admin, messages
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import models
 from django.utils.encoding import smart_text
 

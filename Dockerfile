@@ -10,17 +10,16 @@ RUN /stack/imageopt/install.sh
 COPY stack/moviepy /stack/moviepy
 RUN /stack/moviepy/install.sh
 
-ENV PYTHONPATH=/app/src:$PYTHONPATH
+ENV PYTHONPATH=/app/src:/app:$PYTHONPATH
 
 # <PYTHON>
 ENV PIP_INDEX_URL=${PIP_INDEX_URL:-https://wheels.aldryn.net/v1/aldryn-extras+pypi/${WHEELS_PLATFORM:-aldryn-baseproject-py3}/+simple/} \
     WHEELSPROXY_URL=${WHEELSPROXY_URL:-https://wheels.aldryn.net/v1/aldryn-extras+pypi/${WHEELS_PLATFORM:-aldryn-baseproject-py3}/}
 COPY requirements.* /app/
 COPY addons-dev /app/addons-dev/
-RUN pip-reqs resolve && \
-    pip install \
-        --no-index --no-deps \
-        --requirement requirements.urls
+RUN pip-reqs compile
+RUN pip-reqs resolve
+RUN pip install --no-index --no-deps --requirement requirements.urls
 # </PYTHON>
 
 
