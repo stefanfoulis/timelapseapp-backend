@@ -1,23 +1,6 @@
 # -*- coding: utf-8 -*-
-from rest_framework import response, routers, serializers, viewsets, views, mixins
+from rest_framework import serializers, viewsets, mixins
 from . import models
-
-
-class CameraSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = models.Camera
-
-
-class ImageSerializer(serializers.HyperlinkedModelSerializer):
-    camera = serializers.ReadOnlyField(source='camera.name')
-
-    class Meta:
-        model = models.Image
-
-
-class ImageViewSet(viewsets.ModelViewSet):
-    queryset = models.Image.objects.all()
-    serializer_class = ImageSerializer
 
 
 class ImageUrlSerializer(serializers.Serializer):

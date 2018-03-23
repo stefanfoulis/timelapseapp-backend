@@ -28,16 +28,16 @@ class ImageNode(DjangoObjectType):
     scaled_at_320x240_url = graphene.String(source='scaled_at_320x240')
     scaled_at_640x480_url = graphene.String(source='scaled_at_640x480')
 
-    def resolve_original_url(self, args, context, info):
+    def resolve_original_url(self, info):
         return get_url(self, 'original')
 
-    def resolve_scaled_at_160x120_url(self, args, context, info):
+    def resolve_scaled_at_160x120_url(self, info):
         return get_url(self, 'scaled_at_160x120')
 
-    def resolve_scaled_at_320x240_url(self, args, context, info):
+    def resolve_scaled_at_320x240_url(self, info):
         return get_url(self, 'scaled_at_320x240')
 
-    def resolve_scaled_at_640x480_url(self, args, context, info):
+    def resolve_scaled_at_640x480_url(self, info):
         return get_url(self, 'scaled_at_640x480')
 
 
@@ -55,10 +55,10 @@ class DayNode(DjangoObjectType):
         filterset_class=schema_filters.ImageFilter,
     )
 
-    def resolve_images(self, args, context, info):
+    def resolve_images(self, info):
         return self.images.all()
 
-    def resolve_key_frames(self, args, context, info):
+    def resolve_key_frames(self, info):
         return self.key_frames.all()
 
 
@@ -80,14 +80,19 @@ class CameraNode(DjangoObjectType):
     )
     latest_image = graphene.Field(ImageNode)
 
-    @graphene.resolve_only_args
-    def resolve_latest_image(self):
-        return models.Image.objects.exclude(
-            Q(original='') |
-            Q(scaled_at_160x120='') |
-            Q(scaled_at_320x240='') |
-            Q(scaled_at_640x480='')
-        ).order_by('-shot_at').first()
+    def resolve_latest_image(self, info):
+        return (
+            models.Image
+            .objects
+            .exclude(
+                Q(original='') |
+                Q(scaled_at_160x120='') |
+                Q(scaled_at_320x240='') |
+                Q(scaled_at_640x480='')
+            )
+            .order_by('-shot_at')
+            .first()
+        )
 
 
 class UserNode(DjangoObjectType):
@@ -110,19 +115,28 @@ class UserNode(DjangoObjectType):
     )
     latest_image = graphene.Field(ImageNode)
 
-    @graphene.resolve_only_args
-    def resolve_images(self, first=None):
+    def resolve_images(self, info, first=None):
         first = first or 10
-        return models.Image.objects.all().order_by('-shot_at')[:first]
+        return (
+            models.Image
+            .objects
+            .all()
+            .order_by('-shot_at')
+            [:first]
+        )
 
-    @graphene.resolve_only_args
-    def resolve_latest_image(self):
-        return models.Image.objects.exclude(
-            Q(original='') |
-            Q(scaled_at_160x120='') |
-            Q(scaled_at_320x240='') |
-            Q(scaled_at_640x480='')
-        ).order_by('-shot_at').first()
+    def resolve_latest_image(self, info):
+        return (
+            models.Image.objects
+            .exclude(
+                Q(original='') |
+                Q(scaled_at_160x120='') |
+                Q(scaled_at_320x240='') |
+                Q(scaled_at_640x480='')
+            )
+            .order_by('-shot_at')
+            .first()
+        )
 
 
 class Query(graphene.AbstractType):
@@ -144,10 +158,10 @@ class Query(graphene.AbstractType):
 
     viewer = graphene.Field(UserNode)
 
-    def resolve_viewer(self, args, context, info):
-        if context.user.is_anonymous():
+    def resolve_viewer(self, info):
+        if info.context.user.is_anonymous:
             return None
-        return UserNode(context.user)
+        return info.context.user
 
-    def resolve_default_camera(self, args, context, info):
-        return CameraNode(models.Camera.objects.all().first())
+    def resolve_default_camera(self, info):
+        return models.Camera.objects.all().first()
