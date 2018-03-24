@@ -112,6 +112,8 @@ Application Insight
 For the developers and operations it is really useful to know what is going on in a system. Besides the benefits from
 logging, locks and progress mentioned above, it would be useful to have easy insight into task queues (celery). Some
 way of visually showing what is running right now, what is queued and what the backlog on every queue is.
+Also information like durations of each task than ran with min/max/average information over time. Allowing feedback like
+"this task is taking unusally long" and possibly even displaying that to the enduser.
 
 
 .. _eliot: https://github.com/ScatterHQ/eliot
