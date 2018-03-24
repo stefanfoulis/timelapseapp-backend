@@ -39,7 +39,7 @@ cameras
 Things to explore
 =================
 
-The primary reason for this project is actually not to have an awesome
+The primary reason for this project is not actually not the awesome
 timelapse application. The main motivator for me is the explore solutions to
 challenges I've encoutered in other projects on a green field.
 
