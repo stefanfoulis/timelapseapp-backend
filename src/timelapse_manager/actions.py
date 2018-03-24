@@ -15,7 +15,7 @@ import easy_thumbnails.files
 
 
 def discover_images_on_day(
-    camera,
+    stream,
     day_name,
     sizes=None,
     storage=storage.timelapse_storage,
@@ -23,7 +23,7 @@ def discover_images_on_day(
 ):
     sizes = sizes or ('original', '640x480', '320x240', '160x120')
     data = collections.defaultdict(dict)
-    camera_basedir = os.path.join(basedir, camera.name)
+    camera_basedir = os.path.join(basedir, stream.name)
     for size_name in storage.listdir(camera_basedir)[0]:
         if size_name not in sizes:
             continue
@@ -41,7 +41,7 @@ def discover_images_on_day(
             if not imagename.lower().endswith('.jpg'):
                 continue
             shot_at = utils.datetime_from_filename(imagename)
-            imgdata = data[(camera.name, shot_at)]
+            imgdata = data[(stream.name, shot_at)]
             imagepath = os.path.join(day_basedir, imagename)
 
             imgdata['shot_at'] = shot_at
@@ -57,7 +57,7 @@ def discover_images_on_day(
             print(' -> discovered {}'.format(imagepath))
     for imgdata in data.values():
         image, created = models.Image.objects.update_or_create(
-            camera=camera,
+            stream=stream,
             shot_at=imgdata.pop('shot_at'),
             defaults=imgdata,
         )

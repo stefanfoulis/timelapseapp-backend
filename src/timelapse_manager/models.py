@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 import uuid
 from functools import partial
 
 import datetime
 from django.db import models
 from django.db.models import Q, QuerySet
-from django.utils.encoding import python_2_unicode_compatible
 
 from timelapse_manager.storage import dsn_configured_storage
 from . import storage
@@ -13,25 +11,67 @@ from . import storage
 
 class UUIDAuditedModel(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    _created_at = models.DateTimeField(auto_now_add=True)
-    _updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         abstract = True
 
 
-@python_2_unicode_compatible
-class Camera(UUIDAuditedModel):
+class CameraController(UUIDAuditedModel):
+    """
+    A unit that manages Cameras, like a RaspberryPi, iOS or Android device.
+    It registers itself and can provide multiple cameras to the system.
+    """
     name = models.CharField(blank=True, default='', max_length=255)
     notes = models.TextField(blank=True, default='')
-    auto_resize_original = models.BooleanField(
-        default=False,
-        help_text='if enabled, every original image submitted through the image'
-                  'intake will automatically be resized.'
+
+    def __str__(self):
+        return f'{self.name}'
+
+
+class Camera(UUIDAuditedModel):
+    controller = models.ForeignKey(
+        'CameraController',
+        related_name='cameras',
+        on_delete=models.CASCADE,
+    )
+    name = models.CharField(blank=True, default='', max_length=255)
+    notes = models.TextField(blank=True, default='')
+
+    active_image_stream = models.ForeignKey(
+        'Stream',
+        blank=True,
+        null=True,
+        default=None,
+        on_delete=models.SET_NULL,
     )
 
     def __str__(self):
-        return self.name
+        return f'{self.name}'
+
+
+class Stream(UUIDAuditedModel):
+    """
+    Holds a Stream of Images together and usually represents a location and
+    perspective from which images are created.
+    This is separate from Camera because cameras may move around or be
+    re-purposed for different Streams over time.
+    """
+    name = models.CharField(blank=True, default='', max_length=255)
+    notes = models.TextField(blank=True, default='')
+    location = models.TextField(blank=True, default='')
+
+    auto_resize_original = models.BooleanField(
+        default=False,
+        help_text=(
+            'if enabled, every original image submitted through the image'
+            'intake will automatically be resized.'
+        ),
+    )
+
+    def __str__(self):
+        return f'{self.name}'
 
     def create_days(self):
         created_days = []
@@ -75,14 +115,14 @@ class ImageManager(QuerySet):
             Q(scaled_at_640x480__icontains='.JPG.')
         )
 
-    def pick_closest(self, camera, shot_at, max_difference=None):
+    def pick_closest(self, stream, shot_at, max_difference=None):
         """
         Picks closes available image. Raises DoesNotExists if no image is
         found within the range.
         This naïve implementation only looks forwards from the given shot_at
         datetime. A better version would also look into the past.
         """
-        qs = self.filter(camera=camera, shot_at__gte=shot_at)
+        qs = self.filter(stream=stream, shot_at__gte=shot_at)
         if max_difference:
             qs = qs.filter(shot_at__lte=shot_at+max_difference)
         return qs.first()
@@ -96,7 +136,6 @@ class ImageManager(QuerySet):
         return actions.create_or_update_images_from_urls(urls=urls)
 
 
-@python_2_unicode_compatible
 class Image(UUIDAuditedModel):
     sizes = (
         '640x480',
@@ -107,7 +146,7 @@ class Image(UUIDAuditedModel):
         (size, size)
         for size in sizes
     ]
-    camera = models.ForeignKey(Camera, related_name='images', on_delete=models.PROTECT)
+    stream = models.ForeignKey(Stream, related_name='images', on_delete=models.PROTECT)
     name = models.CharField(
         max_length=255, blank=True, default='', db_index=True)
     shot_at = models.DateTimeField(
@@ -140,7 +179,7 @@ class Image(UUIDAuditedModel):
 
     class Meta:
         unique_together = (
-            ('camera', 'shot_at',),
+            ('stream', 'shot_at',),
         )
         ordering = ('shot_at',)
 
@@ -172,10 +211,9 @@ class Image(UUIDAuditedModel):
         return getattr(self, 'scaled_at_{}'.format(size))
 
 
-@python_2_unicode_compatible
 class Tag(UUIDAuditedModel):
-    camera = models.ForeignKey(Camera, related_name='tags', on_delete=models.PROTECT)
-    name = models.CharField(max_length=255)
+    stream = models.ForeignKey(Stream, related_name='tags', on_delete=models.PROTECT)
+    tag_info = models.ForeignKey('TagInfo',  related_name='tags', on_delete=models.PROTECT)
     start_at = models.DateTimeField()
     end_at = models.DateTimeField()
 
@@ -186,7 +224,7 @@ class Tag(UUIDAuditedModel):
         )
 
     def __str__(self):
-        return self.name
+        return f'{self.tag_info.name} ({self.start_at} - {self.end_at})'
 
     @property
     def images(self):
@@ -223,17 +261,12 @@ class Tag(UUIDAuditedModel):
         })
 
 
-@python_2_unicode_compatible
 class TagInfo(UUIDAuditedModel):
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, default='')
 
     def __str__(self):
         return self.name
-
-    @property
-    def tags(self):
-        return Tag.objects.filter(name=self.name)
 
 
 class DayManager(QuerySet):
@@ -242,18 +275,17 @@ class DayManager(QuerySet):
             day.create_keyframe_thumbnails(force=force)
 
 
-def create_for_range(self, camera, start_on, end_on=None):
+def create_for_range(self, stream, start_on, end_on=None):
     if end_on is None:
         end_on = start_on
     current_day = start_on
     while current_day <= end_on:
-        self.get_or_create(camera=camera, date=current_day)
+        self.get_or_create(stream=stream, date=current_day)
         current_day = current_day + datetime.timedelta(days=1)
 
 
-@python_2_unicode_compatible
 class Day(UUIDAuditedModel):
-    camera = models.ForeignKey(Camera, related_name='days', on_delete=models.PROTECT)
+    stream = models.ForeignKey(Stream, related_name='days', on_delete=models.PROTECT)
     date = models.DateField(db_index=True)
     cover = models.ForeignKey(
         Image, null=True, blank=True, related_name='cover_for_days', on_delete=models.PROTECT)
@@ -264,15 +296,15 @@ class Day(UUIDAuditedModel):
 
     class Meta:
         ordering = ('date',)
-        unique_together = ('camera', 'date')
+        unique_together = ('stream', 'date')
 
     def __str__(self):
-        return '{}'.format(self.date)
+        return f'{self.date}'
 
     @property
     def images(self):
         return Image.objects.filter(
-            camera=self.camera,
+            stream_id=self.stream_id,
             shot_at__date=self.date,
         )
 
@@ -302,12 +334,11 @@ class Day(UUIDAuditedModel):
     def discover_images(self):
         from . import actions
         actions.discover_images_on_day(
-            camera=self.camera,
+            steam=self.stream,
             day_name=str(self.date),
         )
 
 
-@python_2_unicode_compatible
 class Movie(UUIDAuditedModel):
     camera = models.ForeignKey(Camera, related_name='movies', on_delete=models.PROTECT)
     name = models.CharField(max_length=255, unique=True)
@@ -390,7 +421,6 @@ class Movie(UUIDAuditedModel):
         return self.images.count()
 
 
-@python_2_unicode_compatible
 class MovieRendering(UUIDAuditedModel):
     movie = models.ForeignKey(Movie, related_name='renderings', on_delete=models.PROTECT)
     size = models.CharField(
@@ -454,7 +484,7 @@ class Frame(UUIDAuditedModel):
 
     def pick_image(self):
         self.image = Image.objects.pick_closest(
-            camera=self.movie_rendering.movie.camera,
+            stream=self.movie_rendering.movie.stream,
             shot_at=self.realtime_timestamp,
             max_difference=datetime.timedelta(hours=1)
         )

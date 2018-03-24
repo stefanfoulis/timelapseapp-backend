@@ -1,15 +1,19 @@
-# -*- coding: utf-8 -*-
 import datetime
 from django.contrib import admin, messages
 from django.urls import reverse
 from django.db import models
 from django.utils.encoding import smart_text
 
-from .models import Camera, Image, Day, Tag, TagInfo, Movie, MovieRendering, \
-    Frame
+from . import models
 from . import tasks, utils
 
 
+@admin.register(models.CameraController)
+class CameraControllerAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(models.Camera)
 class CameraAdmin(admin.ModelAdmin):
     actions = (
         'create_days_for_existing_images_action',
@@ -68,9 +72,15 @@ class CameraAdmin(admin.ModelAdmin):
             tasks.discover_images.delay(camera_id=str(camera.id))
 
 
+@admin.register(models.Stream)
+class StreamAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(models.Image)
 class ImageAdmin(admin.ModelAdmin):
     list_display = (
-        'camera',
+        'stream',
         'shot_at',
         'original',
         'scaled_at_640x480',
@@ -78,7 +88,7 @@ class ImageAdmin(admin.ModelAdmin):
         'scaled_at_160x120',
     )
     list_filter = (
-        'camera',
+        'stream',
         # TODO: filter by has original, has scaled
     )
     date_hierarchy = 'shot_at'
@@ -97,10 +107,11 @@ class ImageAdmin(admin.ModelAdmin):
             tasks.create_thumbnails_for_image.delay(image_id=str(obj.id))
 
 
+@admin.register(models.Day)
 class DayAdmin(admin.ModelAdmin):
     list_display = (
         'date',
-        'camera',
+        'stream',
         'cover_img',
         'keyframes_img',
         'image_counts_html',
@@ -116,7 +127,7 @@ class DayAdmin(admin.ModelAdmin):
         'cover',
     )
     fields = (
-        'camera',
+        'stream',
         'date',
         'cover',
     )
@@ -124,7 +135,7 @@ class DayAdmin(admin.ModelAdmin):
         '-date',
     )
     list_filter = (
-        'camera',
+        'stream',
     )
     date_hierarchy = 'date'
 
@@ -211,9 +222,10 @@ class DayAdmin(admin.ModelAdmin):
     image_counts_html.short_description = 'image counts'
 
 
+@admin.register(models.Tag)
 class TagAdmin(admin.ModelAdmin):
     list_display = (
-        'name',
+        'tag_info',
         'start_at',
         'end_at',
         'duration',
@@ -225,12 +237,13 @@ class TagAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(models.TagInfo)
 class TagInfoAdmin(admin.ModelAdmin):
     pass
 
 
 class MovieRenderingInline(admin.TabularInline):
-    model = MovieRendering
+    model = models.MovieRendering
     extra = 0
     readonly_fields = (
         'frame_count',
@@ -367,13 +380,3 @@ class FrameAdmin(admin.ModelAdmin):
     def create_thumbnails_action(self, request, queryset):
         for obj in queryset:
             tasks.create_thumbnails_for_image.delay(image_id=str(obj.image_id))
-
-
-admin.site.register(Camera, CameraAdmin)
-admin.site.register(Image, ImageAdmin)
-admin.site.register(Day, DayAdmin)
-admin.site.register(Tag, TagAdmin)
-admin.site.register(TagInfo, TagInfoAdmin)
-admin.site.register(Movie, MovieAdmin)
-admin.site.register(MovieRendering, MovieRenderingAdmin)
-admin.site.register(Frame, FrameAdmin)

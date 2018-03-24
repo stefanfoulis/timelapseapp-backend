@@ -10,14 +10,17 @@ INSTALLED_ADDONS = [
     'django_celery_addon',
     # </INSTALLED_ADDONS>
 ]
+INSTALLED_APPS = []
 
 import django_addons.settings
 django_addons.settings.load(locals())
 
-# all django settings can be altered here
+
+AUTH_USER_MODEL = 'accounts.User'
+
 
 INSTALLED_APPS.extend([
-    # add you project specific apps here
+    'accounts',
     'timelapse_manager',
     'taggit',
     'rest_framework',

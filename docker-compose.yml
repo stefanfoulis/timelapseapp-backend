@@ -9,7 +9,7 @@ services:
     image: stefanfoulis/timelapseapp-backend:local
     depends_on:
       - "image"
-      - "db"
+      - "postgres"
       - "rabbitmq"
     command: bash
     env_file:
@@ -37,7 +37,7 @@ services:
     <<: *BASE
     command: django-celery-addon beat
 
-  db:
+  postgres:
     image: postgres:9.6-alpine
     volumes:
       - ".:/app:rw"
