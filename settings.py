@@ -83,3 +83,22 @@ GRAPHENE = {
         'graphene_django.debug.DjangoDebugMiddleware',
     ]
 }
+
+
+# Django Channels
+INSTALLED_APPS.insert(0, 'channels')
+ASGI_APPLICATION = 'routing.application'
+
+CHANNEL_LAYERS = {
+    # FIXME: configure from env var
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('redis', 6379)],
+        },
+    },
+}
+
+
+# Chat tutorial
+INSTALLED_APPS.append('chat')

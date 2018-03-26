@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from django.urls import path, include
 from django_addon.utils import i18n_patterns
 import django_addons.urls
@@ -9,9 +8,10 @@ from schema import schema
 
 urlpatterns = [
     # add your own patterns here
-    path(r'api/', include('timelapse_manager.api_urls')),
+    path('chat/', include('chat.urls')),
+    path('api/', include('timelapse_manager.api_urls')),
     path(
-        r'graphql/',
+        'graphql/',
         graphene_django.views.GraphQLView.as_view(schema=schema, graphiql=True),
     ),
 ] + django_addons.urls.patterns() + i18n_patterns(

@@ -17,11 +17,18 @@ markdown
 django-filter
 django-crispy-forms
 
-graphene>=1.0
+graphene
 django-graphiql
 graphene-django
 
 django-denorm
+django-fsm
+channels
+channels_redis
+Redis
+cryptography
+eliot
+eliot-tree
 
 boto3
 
