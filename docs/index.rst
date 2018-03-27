@@ -17,6 +17,7 @@ backend
 * django-celery for background tasks
 * django-channels (in combination with `relay subscriptions <https://facebook.github.io/relay/docs/en/subscriptions.html>`_ )
 * moviepy to generate movies
+* authentication using `JWT`_
 
 ui
 ==
@@ -106,6 +107,10 @@ stack that treats instant feedback and progress information as a first class cit
 
 Using the metadata available from the apis mentioned above we can produce a really rich experience.
 
+An unclear thing with GraphQL and Django (`graphene-django`_) is how to handle validation and permission checking
+for mutations. We'd want to figure out a standard way of doing that (possibly using serializers from
+django rest framework.
+
 Application Insight
 -------------------
 
@@ -119,3 +124,5 @@ Also information like durations of each task than ran with min/max/average infor
 .. _eliot: https://github.com/ScatterHQ/eliot
 .. _django-fsm: https://github.com/kmmbvnr/django-fsm
 .. _django-channels: https://github.com/django/channels
+.. _JWT: https://jwt.io/
+.. _graphene-django: https://github.com/graphql-python/graphene-django
