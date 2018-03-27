@@ -15,7 +15,7 @@ services:
     command: bash
     env_file:
       - ".env-local"
-      - ".env-local-secrets"
+#      - ".env-local-secrets"
     volumes:
       - ".:/app:delegated"
       - "../timelapseapp-data:/data:delegated"
@@ -57,6 +57,24 @@ services:
 
   redis:
     image: redis:4.0-alpine
+
+#  storage:
+#    image: minio/minio
+#    volumes:
+#     - ../timelapseapp-data/timelapse:/data
+#    environment:
+#      VIRTUAL_HOST: timelapseapp-storage.local.foul.is
+#      MINIO_ACCESS_KEY: admin
+#      MINIO_SECRET_KEY: secret
+#    command: server /data
+
+  storage-nginx:
+    image: nginx:1.13-alpine
+    volumes:
+      - "../timelapseapp-data/timelapse:/usr/share/nginx/html:ro"
+    environment:
+      VIRTUAL_HOST: timelapseapp-storage.local.foul.is
+
 
   redis-commander:
     image: rediscommander/redis-commander:latest

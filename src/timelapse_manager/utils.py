@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
+from functools import partial
+
+import hashlib
+
 import dateparser
 import datetime
 
+import exifread
 from yurl import URL
 
 from timelapse_manager.storage import timelapse_storage
@@ -20,6 +25,15 @@ def datetime_from_filename(filename):
     return dateparser.parse(datetimestr)
 
 
+def datetime_from_exif(image_file):
+    image_file.seek(0)
+    tags = exifread.process_file(image_file)
+    image_file.seek(0)
+    datetime_str = str(tags['EXIF DateTimeOriginal'])
+    datetime_native = datetime.datetime.strptime(datetime_str + 'UTC', '%Y:%m:%d %H:%M:%S%Z')
+    return datetime_native
+
+
 def original_filename_from_filename(filename, include_extension=False):
     # old format: 2016-05-03_00-02-59_A_G0070289.JPG
     # new format: 2016-05-03_00-02-59.A_G0070289.original.6c227c09a043c0e30a86a61ddd445734.JPG
@@ -36,6 +50,15 @@ def original_filename_from_filename(filename, include_extension=False):
 
 def md5sum_from_filename(filename):
     return filename.split('.')[-2]
+
+
+def md5sum_from_fileobj(file_obj):
+    md5 = hashlib.md5()
+    file_obj.seek(0)
+    for buf in iter(partial(file_obj.read, 128), b''):
+        md5.update(buf)
+    file_obj.seek(0)
+    return md5.hexdigest()
 
 
 def daterange(start_on, end_on):
@@ -83,4 +106,8 @@ def image_url_to_structured_data(url):
 
 
 def datetime_to_datetimestr(dt):
-    return dt.strftime('%Y-%m-%d'), dt.strftime('%Y-%m-%d_%H-%M-%S')
+    return dt.strftime('%Y-%m-%d_%H-%M-%S')
+
+
+def datetime_to_datestr(dt):
+    return dt.strftime('%Y-%m-%d')

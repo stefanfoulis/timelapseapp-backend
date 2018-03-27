@@ -11,6 +11,7 @@ recurrent
 django-taggit
 django-extended-choices
 moviepy
+ExifRead
 
 djangorestframework
 markdown
@@ -34,3 +35,4 @@ boto3
 
 furl
 yurl
+django-click

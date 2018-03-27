@@ -157,9 +157,12 @@ class NotImplementedStorage(django.core.files.storage.Storage):
         raise NotImplementedError
 
 
-class _DSNConfiguredStorage(LazyObject):
+class _DSNSettingConfiguredStorage(LazyObject):
+    def _get_dsn(self):
+        return getattr(settings, self._setting_name, None)
+
     def _setup(self):
-        dsn = getattr(settings, self._setting_name, None)
+        dsn = self._get_dsn()
         if not dsn:
             self._wrapped = NotImplementedStorage()
         else:
@@ -175,40 +178,58 @@ class _DSNConfiguredStorage(LazyObject):
             self._wrapped = storage_class(url)
 
 
-def dsn_configured_storage(setting_name):
+class _DSNVariableConfiguredStorage(_DSNSettingConfiguredStorage):
+    def _get_dsn(self):
+        return self._dsn
+
+
+def dsn_setting_configured_storage(setting_name):
     path = '{}.{}'.format(
-        dsn_configured_storage.__module__,
-        dsn_configured_storage.__name__,
+        dsn_setting_configured_storage.__module__,
+        dsn_setting_configured_storage.__name__,
     )
-    return type('DSNConfiguredStorage', (_DSNConfiguredStorage,), {
+    return type('DSNSettingConfiguredStorage', (_DSNSettingConfiguredStorage,), {
         '_setting_name': setting_name,
         '_deconstructor': lambda self: (path, [setting_name], {}),
     })()
 
 
-timelapse_storage = dsn_configured_storage('TIMELAPSE_STORAGE_DSN')
+def dsn_variable_configured_storage(dsn):
+    path = '{}.{}'.format(
+        dsn_variable_configured_storage.__module__,
+        dsn_variable_configured_storage.__name__,
+    )
+    return type('DSNVariableConfiguredStorage', (_DSNVariableConfiguredStorage,), {
+        '_dsn': dsn,
+        '_deconstructor': lambda self: (path, [dsn], {}),
+    })()
+
+
+timelapse_storage = dsn_setting_configured_storage('TIMELAPSE_STORAGE_DSN')
 
 
 def structured_data_to_image_filename(data):
     return '{shot_at}.{original_name}.{size}.{md5sum}.JPG'.format(**data)
 
 
-def upload_to_thumbnail(instance, filename, size=None):
+def upload_to_image_x(instance, size='original'):
     from . import utils
-    original_path = instance.original.name
-    original_name = os.path.basename(original_path)
-    filename = '{shot_at}.{original_name}.{size}.{md5sum}.JPG'.format(
-        shot_at=utils.datetime_to_datetimestr(instance.shot_at),
-        original_name=instance.name,
-        size=size,
-        md5sum=getattr(instance, 'scaled_at_{}_md5'.format(size)),
-    )
-    return '{camera}/{size}/{day}/{filename}'.format(
-        size=size,
-        day=original_name[:10],
-        filename=filename,
-        camera=instance.camera.name,
-    )
+    day = instance.shot_at.strftime('%Y-%m-%d')
+    shot_at = utils.datetime_to_datetimestr(instance.shot_at)
+    size = 'original'
+    md5sum = instance.original_md5
+    file_name = f'{instance.stream_id}.{shot_at}.{size}.{md5sum}.{instance.name}.JPG'
+    return f'streams/{instance.stream_id}/{size}/{day}/{file_name}'
+
+
+def upload_to_image(instance, filename, size=None):
+    assert size
+    from . import utils
+    day = instance.shot_at.strftime('%Y-%m-%d')
+    shot_at = utils.datetime_to_datetimestr(instance.shot_at)
+    md5sum = getattr(instance, 'scaled_at_{}_md5'.format(size))
+    file_name = f'{instance.stream_id}.{shot_at}.{size}.{md5sum}.{instance.name}.JPG'
+    return f'streams/{instance.stream_id}/{size}/{day}/{file_name}'
 
 
 def upload_to_movie_rendering(instance, filename):

@@ -3,6 +3,7 @@ from django.contrib import admin, messages
 from django.urls import reverse
 from django.db import models
 from django.utils.encoding import smart_text
+from django.utils.html import format_html
 
 from . import models
 from . import tasks, utils
@@ -82,6 +83,7 @@ class ImageAdmin(admin.ModelAdmin):
     list_display = (
         'stream',
         'shot_at',
+        'preview_html',
         'original',
         'scaled_at_640x480',
         'scaled_at_320x240',
@@ -105,6 +107,15 @@ class ImageAdmin(admin.ModelAdmin):
     def create_thumbnails_action(self, request, queryset):
         for obj in queryset:
             tasks.create_thumbnails_for_image.delay(image_id=str(obj.id))
+
+    def preview_html(self, obj):
+        if obj.scaled_at_160x120:
+            return format_html(
+                '<img src="{}" style="width: 160px;"/>',
+                obj.scaled_at_160x120.url,
+            )
+    preview_html.allow_tags = True
+    preview_html.short_description = ''
 
 
 @admin.register(models.Day)

@@ -8,8 +8,8 @@ import os
 from django.core.files import File
 
 from timelapse_manager.models import Frame
+from timelapse_manager.storage import upload_to_image, timelapse_storage
 from . import models
-from . import storage
 from . import utils
 import easy_thumbnails.files
 
@@ -18,7 +18,7 @@ def discover_images_on_day(
     stream,
     day_name,
     sizes=None,
-    storage=storage.timelapse_storage,
+    storage=timelapse_storage,
     basedir='',
 ):
     sizes = sizes or ('original', '640x480', '320x240', '160x120')
@@ -68,8 +68,11 @@ def discover_images_on_day(
 
 
 def discover_images(
-    storage=storage.timelapse_storage, basedir='',
-    limit_cameras=None, limit_days=None, sizes=None
+        storage=timelapse_storage,
+        basedir='',
+        limit_cameras=None,
+        limit_days=None,
+        sizes=None,
 ):
     """
     directory relative to default storage root
@@ -342,3 +345,34 @@ def set_image_name_based_on_original_filename(qs):
             image.save()
         else:
             print('skipping {}. name already correct')
+
+
+def import_images(stream, storage, path):
+    dirs, file_names = storage.listdir(path)
+    for file_name in file_names:
+        if not file_name.lower().endswith('.jpg'):
+            continue
+        print(file_name, end='  ')
+        image_path = '/'.join([path, file_name]).lstrip('/')
+        with storage.open(image_path) as image_file:
+            shot_at = utils.datetime_from_exif(image_file)
+            md5sum = utils.md5sum_from_fileobj(image_file)
+            print(shot_at, end='  ')
+            image, created = (
+                models.Image.objects
+                .update_or_create(
+                    stream=stream,
+                    shot_at=shot_at,
+                    defaults=dict(
+                        name=file_name,
+                        original_md5=md5sum,
+                    ),
+                )
+            )
+            image.original.save(
+                upload_to_image(image),
+                image_file,
+            )
+            print('created' if created else 'updated', end=' ')
+            print(str(image.pk))
+
