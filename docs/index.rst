@@ -120,6 +120,9 @@ way of visually showing what is running right now, what is queued and what the b
 Also information like durations of each task than ran with min/max/average information over time. Allowing feedback like
 "this task is taking unusally long" and possibly even displaying that to the enduser.
 
+We'd also log every request with url/statuscode/user/duration. The duration can later be used for stats by querying
+elasticsearch.
+
 
 .. _eliot: https://github.com/ScatterHQ/eliot
 .. _django-fsm: https://github.com/kmmbvnr/django-fsm
