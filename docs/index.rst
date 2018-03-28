@@ -124,6 +124,19 @@ We'd also log every request with url/statuscode/user/duration. The duration can 
 elasticsearch.
 
 
+Fancy stuff
+-----------
+
+Image recognition:
+ * auto tag images by objects in the image (car, house, giraffe, moon, bird, person, ...)
+ * detect anomalies (like if an image probably is in the wrong stream)
+ * detect day / night
+
+Auto add tags about weather based on position, time and historic weather data.
+
+Auto add tags about sun/moon visibility based on position and direction of camera.
+
+
 .. _eliot: https://github.com/ScatterHQ/eliot
 .. _django-fsm: https://github.com/kmmbvnr/django-fsm
 .. _django-channels: https://github.com/django/channels
