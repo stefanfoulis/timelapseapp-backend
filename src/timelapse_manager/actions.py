@@ -349,30 +349,34 @@ def set_image_name_based_on_original_filename(qs):
 
 def import_images(stream, storage, path):
     dirs, file_names = storage.listdir(path)
+    # FIXME: file_name should be combination of path and dir
     for file_name in file_names:
         if not file_name.lower().endswith('.jpg'):
             continue
-        print(file_name, end='  ')
-        image_path = '/'.join([path, file_name]).lstrip('/')
-        with storage.open(image_path) as image_file:
-            shot_at = utils.datetime_from_exif(image_file)
-            md5sum = utils.md5sum_from_fileobj(image_file)
-            print(shot_at, end='  ')
-            image, created = (
-                models.Image.objects
-                .update_or_create(
-                    stream=stream,
-                    shot_at=shot_at,
-                    defaults=dict(
-                        name=file_name,
-                        original_md5=md5sum,
-                    ),
-                )
-            )
-            image.original.save(
-                upload_to_image(image),
-                image_file,
-            )
-            print('created' if created else 'updated', end=' ')
-            print(str(image.pk))
+        import_image(stream, storage, file_name)
 
+
+def import_image(stream, storage, path):
+    print(path, end='  ')
+    image_path = '/'.join([path, path]).lstrip('/')
+    with storage.open(image_path) as image_file:
+        shot_at = utils.datetime_from_exif(image_file)
+        md5sum = utils.md5sum_from_fileobj(image_file)
+        print(shot_at, end='  ')
+        image, created = (
+            models.Image.objects
+            .update_or_create(
+                stream=stream,
+                shot_at=shot_at,
+                defaults=dict(
+                    name=path,  # FIXME: only filename from path!
+                    original_md5=md5sum,
+                ),
+            )
+        )
+        image.original.save(
+            upload_to_image(image),
+            image_file,
+        )
+        print('created' if created else 'updated', end=' ')
+        print(str(image.pk))

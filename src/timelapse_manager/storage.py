@@ -228,7 +228,7 @@ def upload_to_image(instance, filename, size=None):
     day = instance.shot_at.strftime('%Y-%m-%d')
     shot_at = utils.datetime_to_datetimestr(instance.shot_at)
     md5sum = getattr(instance, 'scaled_at_{}_md5'.format(size))
-    file_name = f'{instance.stream_id}.{shot_at}.{size}.{md5sum}.{instance.name}.JPG'
+    file_name = f'{instance.stream_id}.{shot_at}.{size}.{md5sum}.{instance.name}'
     return f'streams/{instance.stream_id}/{size}/{day}/{file_name}'
 
 
