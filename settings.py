@@ -3,12 +3,9 @@ import os
 from getenv import env
 
 INSTALLED_ADDONS = [
-    # <INSTALLED_ADDONS>  # Warning: text inside the INSTALLED_ADDONS tags is auto-generated. Manual changes will be overwritten.
     'django_addons',
     'django_addon',
-    # 'aldryn_sso',
     'django_celery_addon',
-    # </INSTALLED_ADDONS>
 ]
 INSTALLED_APPS = []
 
@@ -20,6 +17,7 @@ AUTH_USER_MODEL = 'accounts.User'
 
 
 INSTALLED_APPS.extend([
+    'core',
     'accounts',
     'timelapse_manager',
     'taggit',
@@ -57,6 +55,7 @@ REST_FRAMEWORK = {
         # },
     },
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.NamespaceVersioning',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 100,
 }
 

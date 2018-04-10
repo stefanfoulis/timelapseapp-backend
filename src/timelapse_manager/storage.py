@@ -212,22 +212,15 @@ def structured_data_to_image_filename(data):
     return '{shot_at}.{original_name}.{size}.{md5sum}.JPG'.format(**data)
 
 
-def upload_to_image_x(instance, size='original'):
-    from . import utils
-    day = instance.shot_at.strftime('%Y-%m-%d')
-    shot_at = utils.datetime_to_datetimestr(instance.shot_at)
-    size = 'original'
-    md5sum = instance.original_md5
-    file_name = f'{instance.stream_id}.{shot_at}.{size}.{md5sum}.{instance.name}.JPG'
-    return f'streams/{instance.stream_id}/{size}/{day}/{file_name}'
-
-
-def upload_to_image(instance, filename, size=None):
+def upload_to_image(instance, filename=None, size=None):
     assert size
     from . import utils
     day = instance.shot_at.strftime('%Y-%m-%d')
     shot_at = utils.datetime_to_datetimestr(instance.shot_at)
-    md5sum = getattr(instance, 'scaled_at_{}_md5'.format(size))
+    if size == 'original':
+        md5sum = getattr(instance, '{}_md5'.format(size))
+    else:
+        md5sum = getattr(instance, 'scaled_at_{}_md5'.format(size))
     file_name = f'{instance.stream_id}.{shot_at}.{size}.{md5sum}.{instance.name}'
     return f'streams/{instance.stream_id}/{size}/{day}/{file_name}'
 

@@ -2,6 +2,7 @@
 import datetime
 
 import collections
+import eliot
 
 import hashlib
 import os
@@ -219,31 +220,37 @@ def create_or_update_image_from_url(url):
 
 
 def create_thumbnail(image, size):
-    if not image.original:
-        return None  # raise instead?
-    thumbnailer = easy_thumbnails.files.get_thumbnailer(image.original)
-    size_tuple = tuple([int(sz) for sz in size.split('x')])
-    options = {
-        'size': size_tuple,
-        'upscale': False,
-    }
-    thumb = thumbnailer.generate_thumbnail(options)
-    content_file = thumb.file
-    content_file.name = 'afile.jpg'
-    content_file.seek(0)
-    md5sum = hashlib.md5(content_file.read()).hexdigest()
-    content_file.seek(0)
-    setattr(image, 'scaled_at_{}'.format(size), content_file)
-    setattr(image, 'scaled_at_{}_md5'.format(size), md5sum)
+    total = 2
+    with eliot.start_action(action_type='timelapse:image:create_thumbnail', size=size, image=str(image.pk)) as action:
+        if not image.original:
+            raise Exception('missing original')
+        thumbnailer = easy_thumbnails.files.get_thumbnailer(image.original)
+        size_tuple = tuple([int(sz) for sz in size.split('x')])
+        options = {
+            'size': size_tuple,
+            'upscale': False,
+        }
+        thumb = thumbnailer.generate_thumbnail(options)
+        eliot.Message.log(message_type='thumbnail-generated', progress={'done': 1, 'total': total})
+        content_file = thumb.file
+        content_file.name = 'afile.jpg'
+        content_file.seek(0)
+        md5sum = hashlib.md5(content_file.read()).hexdigest()
+        eliot.Message.log(message_type='md5-generated', progress={'done': 2, 'total': total})
+        content_file.seek(0)
+        setattr(image, 'scaled_at_{}'.format(size), content_file)
+        setattr(image, 'scaled_at_{}_md5'.format(size), md5sum)
 
 
 def create_thumbnails(image, force=False):
-    for size in image.sizes:
-        if force or not getattr(image, 'scaled_at_{}'.format(size)):
-            print('  creating thumbnail {} {}'.format(image, size))
-            create_thumbnail(image, size)
-        else:
-            print('  thumbnail already exists {} {}'.format(image, size))
+    total = len(image.sizes)
+    with eliot.start_action(action_type='timelapse:image:create_thumbnails', image=str(image.pk)) as action:
+        for idx, size in enumerate(image.sizes):
+            if force or not getattr(image, 'scaled_at_{}'.format(size)):
+                create_thumbnail(image, size)
+                eliot.Message.log(size=size, progress={'done': idx, 'total': total})
+            else:
+                eliot.Message.log(size=size, alread_exists=True, progress={'done': idx, 'total': total})
 
 
 def set_keyframes_for_day(day):
@@ -348,35 +355,44 @@ def set_image_name_based_on_original_filename(qs):
 
 
 def import_images(stream, storage, path):
-    dirs, file_names = storage.listdir(path)
-    # FIXME: file_name should be combination of path and dir
-    for file_name in file_names:
-        if not file_name.lower().endswith('.jpg'):
-            continue
-        import_image(stream, storage, file_name)
+    with eliot.start_action(action_type='timelapse:images:import') as action:
+        dirs, file_names = storage.listdir(path)
+        total = len(file_names)
+        # FIXME: file_name should be combination of path and dir
+        for idx, file_name in enumerate(file_names):
+            if not file_name.lower().endswith('.jpg'):
+                continue
+            import_image(stream, storage, file_name)
+            eliot.Message.log(progress={'done': idx, 'total': total})
 
 
 def import_image(stream, storage, path):
-    print(path, end='  ')
-    image_path = '/'.join([path, path]).lstrip('/')
-    with storage.open(image_path) as image_file:
-        shot_at = utils.datetime_from_exif(image_file)
-        md5sum = utils.md5sum_from_fileobj(image_file)
-        print(shot_at, end='  ')
-        image, created = (
-            models.Image.objects
-            .update_or_create(
-                stream=stream,
-                shot_at=shot_at,
-                defaults=dict(
-                    name=path,  # FIXME: only filename from path!
-                    original_md5=md5sum,
-                ),
+    with eliot.start_action(action_type='timelapse:image:import') as action:
+        total = 5
+        eliot.Message.log(source=path)
+        # image_path = '/'.join([path, path]).lstrip('/')
+        with storage.open(path) as image_file:
+            eliot.Message.log(message_type='file-opened', progress={'done': 1, 'total': total})
+            shot_at = utils.datetime_from_exif(image_file)
+            eliot.Message.log(message_type='date-extracted', progress={'done': 2, 'total': total})
+            md5sum = utils.md5sum_from_fileobj(image_file)
+            eliot.Message.log(message_type='md5-generated', progress={'done': 3, 'total': total})
+            print(shot_at, end='  ')
+            image, created = (
+                models.Image.objects
+                .update_or_create(
+                    stream=stream,
+                    shot_at=shot_at,
+                    defaults=dict(
+                        name=path,  # FIXME: only filename from path!
+                        original_md5=md5sum,
+                    ),
+                )
             )
-        )
-        image.original.save(
-            upload_to_image(image),
-            image_file,
-        )
-        print('created' if created else 'updated', end=' ')
-        print(str(image.pk))
+            eliot.Message.log(message_type='model-saved', created=created, progress={'done': 4, 'total': total})
+            upload_to_name = upload_to_image(image, size='original')
+            image.original.save(
+                upload_to_name,
+                image_file,
+            )
+            eliot.Message.log(message_type='image-saved', destination=upload_to_name, progress={'done': 5, 'total': total})

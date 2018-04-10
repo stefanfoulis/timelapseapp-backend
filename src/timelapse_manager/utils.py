@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+from django.utils import timezone
 from functools import partial
 
 import hashlib
@@ -30,7 +30,25 @@ def datetime_from_exif(image_file):
     tags = exifread.process_file(image_file)
     image_file.seek(0)
     datetime_str = str(tags['EXIF DateTimeOriginal'])
-    datetime_native = datetime.datetime.strptime(datetime_str + 'UTC', '%Y:%m:%d %H:%M:%S%Z')
+    date_str, time_str = datetime_str.split(' ')
+    year, month, day = [int(x) for x in date_str.split(':')]
+    hour, minute, second = [int(x) for x in time_str.split(':')]
+    extra_days = 0
+    while hour >= 24:
+        # Workaround for faulty gopro not switching date correctly in timelapse
+        # mode.
+        hour = hour - 24
+        extra_days = extra_days + 1
+    datetime_native = datetime.datetime(
+        year=year,
+        month=month,
+        day=day,
+        hour=hour,
+        minute=minute,
+        second=second,
+        tzinfo=timezone.utc,
+    )
+    datetime_native = datetime_native + datetime.timedelta(days=extra_days)
     return datetime_native
 
 

@@ -1,6 +1,10 @@
-django-addons==2.0.1
-django-addon==2.0.3.2
-django-celery-addon==4.1.0.2
+-e /app/addons-dev/django-addons
+-e /app/addons-dev/django-addons-formlib
+-e /app/addons-dev/django-addon
+-e /app/addons-dev/django-celery-addon
+#django-addons==2.0.1
+#django-addon==2.0.3.2
+#django-celery-addon==4.1.0.2
 
 ipython
 ipdb
