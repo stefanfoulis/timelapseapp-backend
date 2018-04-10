@@ -109,7 +109,7 @@ Using the metadata available from the apis mentioned above we can produce a real
 
 An unclear thing with GraphQL and Django (`graphene-django`_) is how to handle validation and permission checking
 for mutations. We'd want to figure out a standard way of doing that (possibly using serializers from
-django rest framework.
+django rest framework).
 
 Application Insight
 -------------------
