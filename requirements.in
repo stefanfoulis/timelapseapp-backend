@@ -1,8 +1,6 @@
-# <INSTALLED_ADDONS>  # Warning: text inside the INSTALLED_ADDONS tags is auto-generated. Manual changes will be overwritten.
--e /app/addons-dev/django-addons
--e /app/addons-dev/django-addon
--e /app/addons-dev/django-celery-addon
-# </INSTALLED_ADDONS>
+django-addons==2.0.1
+django-addon==2.0.3.2
+django-celery-addon==4.1.0.2
 
 ipython
 ipdb
