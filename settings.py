@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 from getenv import env
 
@@ -101,3 +100,7 @@ CHANNEL_LAYERS = {
 
 # Chat tutorial
 INSTALLED_APPS.append('chat')
+
+
+# Progress experiment
+INSTALLED_APPS.append('progress_experiment')

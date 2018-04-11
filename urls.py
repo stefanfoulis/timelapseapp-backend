@@ -9,6 +9,7 @@ from schema import schema
 urlpatterns = [
     # add your own patterns here
     path('chat/', include('chat.urls')),
+    path('progress/', include('progress_experiment.urls')),
     path('api/', include('timelapse_manager.api_urls')),
     path(
         'graphql/',
