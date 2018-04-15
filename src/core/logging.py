@@ -18,11 +18,18 @@ def send_to_progress_group(message):
     total = message['progress']['total']
     percentage = int(round(float(done) / float(total) * 100))
     channel_layer = get_channel_layer()
+    root_task_uuid = str(message['task_uuid'])
+    tree = [root_task_uuid] + message['task_level']
+    combined_task_uuid = '--'.join([str(x) for x in tree])
+    progress_task_uuid = '--'.join([str(x) for x in tree[:-1]])
     message = {
         'type': 'progress.update',
-        'progress_id': str(message['task_uuid']),
+        # 'task_uuid': root_task_uuid,
+        'progress_uuid': progress_task_uuid,
         'progress_name': 'whatever',
         'progress_percentage': percentage,
+        'action_type': message.get('action_type', ''),
+        'message_type': message.get('message_type', ''),
     }
     print(message)
     async_to_sync(channel_layer.group_send)(

@@ -245,7 +245,7 @@ def create_thumbnail(image, size):
 def create_thumbnails(image, force=False):
     total = len(image.sizes)
     with eliot.start_action(action_type='timelapse:image:create_thumbnails', image=str(image.pk)) as action:
-        for idx, size in enumerate(image.sizes):
+        for idx, size in enumerate(image.sizes, start=1):
             if force or not getattr(image, 'scaled_at_{}'.format(size)):
                 create_thumbnail(image, size)
                 eliot.Message.log(size=size, progress={'done': idx, 'total': total})

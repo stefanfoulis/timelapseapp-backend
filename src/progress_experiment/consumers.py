@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import JsonWebsocketConsumer
@@ -15,18 +16,22 @@ class ProgressConsumer(JsonWebsocketConsumer):
             channel=self.channel_name
         )
         self.accept()
-        self.send_json(
-            content={
-                'progress_name': 'Hello World',
-                'progress_percent': 50,
-            }
-        )
-        self.send_json(
-            content={
-                'progress_name': 'Hello World 2',
-                'progress_percent': 75,
-            }
-        )
+        # self.send_json(
+        #     content={
+        #         'progress_uuid': str(uuid.uuid4()),
+        #         'action_type': 'Hello World',
+        #         'message_type': 'huh?',
+        #         'progress_percentage': 50,
+        #     }
+        # )
+        # self.send_json(
+        #     content={
+        #         'progress_uuid': str(uuid.uuid4()),
+        #         'action_type': 'Foo',
+        #         'message_type': 'Bar?',
+        #         'progress_percentage': 75,
+        #     }
+        # )
 
     def disconnect(self, close_code):
         # Leave room group

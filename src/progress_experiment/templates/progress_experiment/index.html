@@ -6,6 +6,15 @@
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous"></script>
+  <style>
+    #progress-bars {
+      padding: 50px;
+    }
+    .progress {
+      margin: 5px;
+      height: 30px;
+    }
+  </style>
 </head>
 <body>
     <h1>Progress!</h1>
@@ -25,9 +34,22 @@
         var data = JSON.parse(e.data);
         console.log(data)
         var percentage = data['progress_percentage'];
-        var name = data['progress_name'];
-        var id = data['progress_id'];
-        $('#progress-bars').append('<div class="progress" id="'+id+'"><div class="progress-bar" role="progressbar" style="width: ' + percentage + '%" aria-valuenow="' + percentage + '" aria-valuemin="0" aria-valuemax="100">' + name + '</div></div>');
+        var action_type = data['action_type'];
+        var message_type = data['message_type'];
+        var id = data['progress_uuid'];
+        if ($('#' + id).length) {
+        } else {
+          $('#progress-bars').prepend('<div class="progress" id="' + id + '"><div class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><span class="action_type"></span> <span class="message_type"></span></div></div>');
+        }
+        var progressBar = $('#progress-bars #' + id + ' .progress-bar');
+        progressBar.css('width', percentage + '%');
+        progressBar.attr('aria-valuenow', percentage);
+        if (action_type) {
+          progressBar.children('.action_type').html(action_type);
+        }
+        if (message_type) {
+          progressBar.children('.message_type').html(message_type);
+        }
     };
 
     progressSocket.onclose = function(e) {
