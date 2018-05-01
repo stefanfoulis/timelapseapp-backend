@@ -21,5 +21,6 @@ schema = graphene.Schema(
         timelapse_manager.schema.DayNode,
         timelapse_manager.schema.ImageNode,
         timelapse_manager.schema.CameraNode,
+        timelapse_manager.schema.StreamNode,
     ]
 )

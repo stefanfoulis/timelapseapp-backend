@@ -104,3 +104,7 @@ INSTALLED_APPS.append('chat')
 
 # Progress experiment
 INSTALLED_APPS.append('progress_experiment')
+
+
+# Eliot and stuff
+INSTALLED_APPS.append('eliot_plus.celery')

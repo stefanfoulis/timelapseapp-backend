@@ -23,11 +23,6 @@
     </div>
 </body>
 <script>
-   function ifNotExists($x){
-      if(!$x || $x.length === 0) return { create : function(newX){ return newX; }}
-      else return { create : function(){ return $x } };
-    }
-
     var progressSocket = new WebSocket('wss://' + window.location.host + '/ws/progress/');
 
     progressSocket.onmessage = function(e) {

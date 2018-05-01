@@ -62,6 +62,15 @@ class Stream(UUIDAuditedModel):
     notes = models.TextField(blank=True, default='')
     location = models.TextField(blank=True, default='')
 
+    cover_image = models.ForeignKey(
+        'Image',
+        null=True,
+        default=None,
+        blank=True,
+        related_name='cover_of_streams',
+        on_delete=models.SET_NULL,
+    )
+
     auto_resize_original = models.BooleanField(
         default=False,
         help_text=(
@@ -77,7 +86,7 @@ class Stream(UUIDAuditedModel):
         created_days = []
         for date in self.images.all().dates('shot_at', 'day'):
             day, created = Day.objects.get_or_create(
-                camera=self,
+                stream=self,
                 date=date,
             )
             if created:

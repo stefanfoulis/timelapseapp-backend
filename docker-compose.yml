@@ -12,7 +12,7 @@ services:
       - "postgres"
       - "rabbitmq"
       - "redis"
-    command: bash
+    command: "true"
     env_file:
       - ".env-local"
 #      - ".env-local-secrets"

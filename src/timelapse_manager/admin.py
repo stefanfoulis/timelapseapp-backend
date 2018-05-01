@@ -4,6 +4,9 @@ from django.urls import reverse
 from django.db import models
 from django.utils.encoding import smart_text
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+
+import eliot
 
 from . import models
 from . import tasks, utils
@@ -16,27 +19,31 @@ class CameraControllerAdmin(admin.ModelAdmin):
 
 @admin.register(models.Camera)
 class CameraAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(models.Stream)
+class StreamAdmin(admin.ModelAdmin):
     actions = (
         'create_days_for_existing_images_action',
         'create_days_for_oldest_existing_image_until_today_action',
-        'discover_images_action',
     )
 
     def create_days_for_existing_images_action(self, request, queryset):
-        for camera in queryset:
-            days = camera.create_days()
+        for stream in queryset:
+            days = stream.create_days()
             self.message_user(
                 request,
                 '{}: created {} days. Now has a total of {} days.'.format(
-                    camera,
+                    stream,
                     len(days),
-                    camera.days.all().count(),
+                    stream.days.all().count(),
                 )
             )
 
     def create_days_for_oldest_existing_image_until_today_action(self, request, queryset):
-        for camera in queryset:
-            day_one = camera.images.order_by('shot_at').first()
+        for stream in queryset:
+            day_one = stream.images.order_by('shot_at').first()
             if not day_one:
                 self.message_user(
                     request,
@@ -51,8 +58,8 @@ class CameraAdmin(admin.ModelAdmin):
                 start_on=start_on,
                 end_on=end_on,
             ):
-                day, created = Day.objects.get_or_create(
-                    camera=camera,
+                day, created = models.Day.objects.get_or_create(
+                    stream=stream,
                     date=date,
                 )
                 if created:
@@ -60,22 +67,13 @@ class CameraAdmin(admin.ModelAdmin):
             self.message_user(
                 request,
                 '{}: created {} days. Now has a total of {} days. ({} - {})'.format(
-                    camera,
+                    stream,
                     len(days),
-                    camera.days.all().count(),
+                    stream.days.all().count(),
                     start_on,
                     end_on,
                 )
             )
-
-    def discover_images_action(self, request, queryset):
-        for camera in queryset:
-            tasks.discover_images.delay(camera_id=str(camera.id))
-
-
-@admin.register(models.Stream)
-class StreamAdmin(admin.ModelAdmin):
-    pass
 
 
 @admin.register(models.Image)
@@ -105,8 +103,13 @@ class ImageAdmin(admin.ModelAdmin):
     )
 
     def create_thumbnails_action(self, request, queryset):
-        for obj in queryset:
-            tasks.create_thumbnails_for_image.delay(image_id=str(obj.id))
+        with eliot.start_action(action_type='timelapse:admin:create_thumbnails_action') as action:
+            for obj in queryset:
+                task_uuid = action.serialize_task_id().decode('ascii')
+                print('='*30)
+                print(task_uuid)
+                print('-'*30)
+                tasks.create_thumbnails_for_image.delay(image_id=str(obj.id), eliot_parent_uuid=task_uuid)
 
     def preview_html(self, obj):
         if obj.scaled_at_160x120:
@@ -204,8 +207,7 @@ class DayAdmin(admin.ModelAdmin):
                 link=image.original.url,
                 img_html=img_html,
             )
-        return img_html
-    cover_img.allow_tags = True
+        return mark_safe(img_html)
 
     def keyframes_img(self, obj):
         html_list = []
@@ -221,15 +223,15 @@ class DayAdmin(admin.ModelAdmin):
                     img_html=html,
                 )
             html_list.append(html)
-        return "&nbsp;".join(html_list)
-    keyframes_img.allow_tags = True
+        return mark_safe("&nbsp;".join(html_list))
 
     def image_counts_html(self, obj):
-        return '<br/>'.join([
-            '<em>{}</em>: {}'.format(key, value)
-            for key, value in sorted(obj.image_counts().items())
-        ])
-    image_counts_html.allow_tags = True
+        return mark_safe(
+            '<br/>'.join([
+                '<em>{}</em>: {}'.format(key, value)
+                for key, value in sorted(obj.image_counts().items())
+            ])
+        )
     image_counts_html.short_description = 'image counts'
 
 

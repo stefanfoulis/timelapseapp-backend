@@ -62,9 +62,27 @@ class DayNode(DjangoObjectType):
         return self.key_frames.all()
 
 
+class CameraControllerNode(DjangoObjectType):
+    class Meta:
+        model = models.CameraController
+        interfaces = (Node,)
+        filter_fields = {
+            'name': ['exact', 'icontains', 'istartswith'],
+        }
+
+
 class CameraNode(DjangoObjectType):
     class Meta:
         model = models.Camera
+        interfaces = (Node,)
+        filter_fields = {
+            'name': ['exact', 'icontains', 'istartswith'],
+        }
+
+
+class StreamNode(DjangoObjectType):
+    class Meta:
+        model = models.Stream
         interfaces = (Node,)
         filter_fields = {
             'name': ['exact', 'icontains', 'istartswith'],
@@ -81,6 +99,7 @@ class CameraNode(DjangoObjectType):
     latest_image = graphene.Field(ImageNode)
 
     def resolve_latest_image(self, info):
+        import ipdb; ipdb.set_trace()
         return (
             models.Image
             .objects
@@ -146,9 +165,14 @@ class Query(graphene.AbstractType):
         filterset_class=schema_filters.ImageFilter,
     )
 
+    camera_controller = Node.Field(CameraControllerNode)
+    all_camera_controllers = DjangoFilterConnectionField(CameraControllerNode)
+
     camera = Node.Field(CameraNode)
     all_cameras = DjangoFilterConnectionField(CameraNode)
-    default_camera = graphene.Field(CameraNode)
+
+    stream = Node.Field(StreamNode)
+    all_streams = DjangoFilterConnectionField(StreamNode)
 
     day = Node.Field(DayNode)
     all_days = DjangoFilterConnectionField(
@@ -162,6 +186,3 @@ class Query(graphene.AbstractType):
         if info.context.user.is_anonymous:
             return None
         return info.context.user
-
-    def resolve_default_camera(self, info):
-        return models.Camera.objects.all().first()

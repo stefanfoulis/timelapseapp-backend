@@ -248,14 +248,14 @@ def create_thumbnails(image, force=False):
         for idx, size in enumerate(image.sizes, start=1):
             if force or not getattr(image, 'scaled_at_{}'.format(size)):
                 create_thumbnail(image, size)
-                eliot.Message.log(size=size, progress={'done': idx, 'total': total})
+                eliot.Message.log(message_type='progress', size=size, progress={'done': idx, 'total': total})
             else:
-                eliot.Message.log(size=size, alread_exists=True, progress={'done': idx, 'total': total})
+                eliot.Message.log(message_type='progress', size=size, alread_exists=True, progress={'done': idx, 'total': total})
 
 
 def set_keyframes_for_day(day):
     day.cover = models.Image.objects.pick_closest(
-        camera=day.camera,
+        stream=day.stream,
         shot_at=datetime.datetime.combine(day.date, datetime.time(16, 0)),
         max_difference=datetime.timedelta(hours=2)
     )
@@ -270,13 +270,13 @@ def set_keyframes_for_day(day):
     images = []
     for keyframe in keyframes:
         image = models.Image.objects.pick_closest(
-            camera=day.camera,
+            stream=day.stream,
             shot_at=datetime.datetime.combine(day.date, keyframe),
             max_difference=datetime.timedelta(hours=1)
         )
         if image:
             images.append(image)
-    day.key_frames = images
+    day.key_frames.set(images)
 
 
 def image_count_by_type():

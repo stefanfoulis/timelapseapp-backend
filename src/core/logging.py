@@ -2,7 +2,7 @@ import json, sys, os
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from eliot import add_destinations, add_global_fields, start_action, Message
+from eliot import add_destinations, add_global_fields, start_action, Message, to_file
 
 from progress_experiment.consumers import PROGRESS_GROUP_NAME
 
@@ -38,12 +38,9 @@ def send_to_progress_group(message):
     )
 
 
-with start_action(action_type='logging-init'):
-    Message.log(message_type='info', message='adding global fields')
-    add_global_fields(
-        process_id='{}:{}'.format(sys.argv[0], os.getpid()),
-    )
-    Message.log(message_type='info', message='adding stdout destination')
-    add_destinations(stdout)
-    add_destinations(send_to_progress_group)
-
+# add_global_fields(
+#     process_id='{}:{}'.format(sys.argv[0], os.getpid()),
+# )
+add_destinations(stdout)
+add_destinations(send_to_progress_group)
+to_file(open('/app/tmp/timelapse.log', 'ab'))

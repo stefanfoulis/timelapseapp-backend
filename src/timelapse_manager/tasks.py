@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from celery.utils.log import get_task_logger
 from celery import shared_task
+import eliot
 from . import actions, models
-
 
 logger = get_task_logger(__name__)
 
@@ -58,6 +58,10 @@ def render_movie(movie_rendering_id):
 
 
 @shared_task
-def create_thumbnails_for_image(image_id, force=False):
-    image = models.Image.objects.get(id=image_id)
-    image.create_thumbnails(force=force)
+def create_thumbnails_for_image(image_id, force=False, eliot_parent_uuid=None, eliot_celery_task_uuid=None):
+    with eliot.start_action(
+        action_type='timelapse:images:create_thumbnails',
+        # task_parent_uuid=eliot_task_parent_uuid,
+    ) as action:
+        image = models.Image.objects.get(id=image_id)
+        image.create_thumbnails(force=force)
