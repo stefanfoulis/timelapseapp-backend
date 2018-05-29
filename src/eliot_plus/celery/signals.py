@@ -37,6 +37,7 @@ def task_pre_queued(sender, signal, **kwargs):
 
 @after_task_publish.connect
 def task_queued(sender, signal, **kwargs):
+    print('TASK  QUEUED (after_task_publish)')
     task_kwargs = kwargs['body'][1]
     eliot_celery_task_uuid = task_kwargs['eliot_celery_task_uuid']
     action = eliot.Action.continue_task(task_id=eliot_celery_task_uuid)
@@ -46,6 +47,8 @@ def task_queued(sender, signal, **kwargs):
 
 @task_prerun.connect
 def task_start(sender, signal, **kwargs):
+    print('TASK  START (task_prerun)')
+
     task_kwargs = kwargs['kwargs']
     eliot_celery_task_uuid = task_kwargs['eliot_celery_task_uuid']
     action = eliot.Action.continue_task(task_id=eliot_celery_task_uuid)
@@ -55,8 +58,7 @@ def task_start(sender, signal, **kwargs):
 
 @task_postrun.connect
 def task_complete(sender, signal, **kwargs):
-    from pprint import pprint as pp
-    pp(kwargs)
+    print('TASK  COMPLETE (task_postrun)')
     task_kwargs = kwargs['kwargs']
     eliot_celery_task_uuid = task_kwargs['eliot_celery_task_uuid']
     action = eliot.Action.continue_task(task_id=eliot_celery_task_uuid)
@@ -68,8 +70,8 @@ def task_complete(sender, signal, **kwargs):
 
 @task_failure.connect
 def task_failure(sender=None, signal=None, **kwargs):
-    from pprint import pprint as pp
-    pp(kwargs)
+    print('TASK  FAILURE (task_failure)')
+
     task_kwargs = kwargs['kwargs']
     eliot_celery_task_uuid = task_kwargs['eliot_celery_task_uuid']
     action = eliot.Action.continue_task(task_id=eliot_celery_task_uuid)
