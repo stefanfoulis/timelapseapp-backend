@@ -38,3 +38,6 @@ boto3
 furl
 yurl
 django-click
+
+black
+isort
