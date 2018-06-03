@@ -1,28 +1,24 @@
 # -*- coding: utf-8 -*-
-import datetime
-
 import collections
-import eliot
-
+import datetime
 import hashlib
 import os
+
 from django.core.files import File
 
-from timelapse_manager.models import Frame
-from timelapse_manager.storage import upload_to_image, timelapse_storage
-from . import models
-from . import utils
 import easy_thumbnails.files
+import eliot
+
+from timelapse_manager.models import Frame
+from timelapse_manager.storage import timelapse_storage, upload_to_image
+
+from . import models, utils
 
 
 def discover_images_on_day(
-    stream,
-    day_name,
-    sizes=None,
-    storage=timelapse_storage,
-    basedir='',
+    stream, day_name, sizes=None, storage=timelapse_storage, basedir=""
 ):
-    sizes = sizes or ('original', '640x480', '320x240', '160x120')
+    sizes = sizes or ("original", "640x480", "320x240", "160x120")
     data = collections.defaultdict(dict)
     camera_basedir = os.path.join(basedir, stream.name)
     for size_name in storage.listdir(camera_basedir)[0]:
@@ -39,46 +35,45 @@ def discover_images_on_day(
             # False for directories.
             continue
         for imagename in imagenames:
-            if not imagename.lower().endswith('.jpg'):
+            if not imagename.lower().endswith(".jpg"):
                 continue
             shot_at = utils.datetime_from_filename(imagename)
             imgdata = data[(stream.name, shot_at)]
             imagepath = os.path.join(day_basedir, imagename)
 
-            imgdata['shot_at'] = shot_at
-            imgdata['name'] = utils.original_filename_from_filename(imagename)
+            imgdata["shot_at"] = shot_at
+            imgdata["name"] = utils.original_filename_from_filename(imagename)
 
-            if size_name == 'original':
-                imgdata['original'] = imagepath
-                imgdata['original_md5'] = utils.md5sum_from_filename(imagename)
+            if size_name == "original":
+                imgdata["original"] = imagepath
+                imgdata["original_md5"] = utils.md5sum_from_filename(imagename)
             else:
-                imgdata['scaled_at_{}'.format(size_name)] = imagepath
-                imgdata['scaled_at_{}_md5'.format(size_name)] = (
-                    utils.md5sum_from_filename(imagename))
-            print(' -> discovered {}'.format(imagepath))
+                imgdata["scaled_at_{}".format(size_name)] = imagepath
+                imgdata[
+                    "scaled_at_{}_md5".format(size_name)
+                ] = utils.md5sum_from_filename(imagename)
+            print(" -> discovered {}".format(imagepath))
     for imgdata in data.values():
         image, created = models.Image.objects.update_or_create(
-            stream=stream,
-            shot_at=imgdata.pop('shot_at'),
-            defaults=imgdata,
+            stream=stream, shot_at=imgdata.pop("shot_at"), defaults=imgdata
         )
         if created:
-            print(' ==> created {}'.format(imgdata['name']))
+            print(" ==> created {}".format(imgdata["name"]))
         else:
-            print(' ==> updated {}'.format(imgdata['name']))
+            print(" ==> updated {}".format(imgdata["name"]))
 
 
 def discover_images(
-        storage=timelapse_storage,
-        basedir='',
-        limit_cameras=None,
-        limit_days=None,
-        sizes=None,
+    storage=timelapse_storage,
+    basedir="",
+    limit_cameras=None,
+    limit_days=None,
+    sizes=None,
 ):
     """
     directory relative to default storage root
     """
-    sizes = sizes or ('original', '640x480', '320x240', '160x120')
+    sizes = sizes or ("original", "640x480", "320x240", "160x120")
     limit_camera_names = [
         camera.name if isinstance(camera, models.Camera) else camera
         for camera in limit_cameras
@@ -134,51 +129,47 @@ def create_or_update_images_from_urls(urls):
     data = collections.defaultdict(dict)
     for url in urls:
         img = utils.image_url_to_structured_data(url)
-        img_data = data[(img['camera_name'], img['shot_at'])]
-        img_data['camera_name'] = img['camera_name']
-        img_data['shot_at'] = img['shot_at']
-        img_data['name'] = img['name']
-        if img['size_name'] == 'original':
-            img_data['original'] = img['path']
-            img_data['original_md5'] = img['md5']
+        img_data = data[(img["camera_name"], img["shot_at"])]
+        img_data["camera_name"] = img["camera_name"]
+        img_data["shot_at"] = img["shot_at"]
+        img_data["name"] = img["name"]
+        if img["size_name"] == "original":
+            img_data["original"] = img["path"]
+            img_data["original_md5"] = img["md5"]
         else:
-            img_data['scaled_at_{}'.format(img['size_name'])] = img['path']
-            img_data['scaled_at_{}_md5'.format(img['size_name'])] = img['md5']
+            img_data["scaled_at_{}".format(img["size_name"])] = img["path"]
+            img_data["scaled_at_{}_md5".format(img["size_name"])] = img["md5"]
     cameras = {}
     images = []
     days = set()
     for img_data in data.values():
-        camera_name = img_data.pop('camera_name')
-        shot_at = img_data.pop('shot_at')
+        camera_name = img_data.pop("camera_name")
+        shot_at = img_data.pop("shot_at")
         days.add((camera_name, shot_at.date()))
         if camera_name not in cameras:
-            cameras[camera_name] = models.Camera.objects.get(
-                name=camera_name,
-            )
+            cameras[camera_name] = models.Camera.objects.get(name=camera_name)
         image, created = models.Image.objects.update_or_create(
-            camera=cameras[camera_name],
-            shot_at=shot_at,
-            defaults=img_data,
+            camera=cameras[camera_name], shot_at=shot_at, defaults=img_data
         )
         images.append(image)
         if created:
-            print(' ==> created {} {}'.format(
-                ', '.join(img_data.keys()),
-                img_data['name']),
+            print(
+                " ==> created {} {}".format(
+                    ", ".join(img_data.keys()), img_data["name"]
+                )
             )
         else:
-            print(' ==> updated {} {}'.format(
-                ', '.join(img_data.keys()),
-                img_data['name']),
+            print(
+                " ==> updated {} {}".format(
+                    ", ".join(img_data.keys()), img_data["name"]
+                )
             )
         if cameras[camera_name].auto_resize_original:
             from .tasks import create_thumbnails_for_image
+
             create_thumbnails_for_image.delay(image_id=str(image.id))
     for camera_name, date in days:
-        models.Day.objects.get_or_create(
-            camera=cameras[camera_name],
-            date=date,
-        )
+        models.Day.objects.get_or_create(camera=cameras[camera_name], date=date)
     return images
 
 
@@ -189,75 +180,85 @@ def create_or_update_image_from_url(url):
     - creates or updates the Image model with the new file
     """
     img = utils.image_url_to_structured_data(url)
-    camera_name = img['camera_name']
-    filename = img['filename']
-    size_name = img['size_name']
-    path = img['path']
-    shot_at = img['shot_at']
+    camera_name = img["camera_name"]
+    filename = img["filename"]
+    size_name = img["size_name"]
+    path = img["path"]
+    shot_at = img["shot_at"]
     camera = models.Camera.objects.get(name=camera_name)
 
-    defaults = dict(
-        name=utils.original_filename_from_filename(filename),
-    )
+    defaults = dict(name=utils.original_filename_from_filename(filename))
 
-    if size_name == 'original':
-        defaults['original'] = path
-        defaults['original_md5'] = img['md5']
+    if size_name == "original":
+        defaults["original"] = path
+        defaults["original_md5"] = img["md5"]
     else:
-        defaults['scaled_at_{}'.format(size_name)] = path
-        defaults['scaled_at_{}_md5'.format(img['size_name'])] = img['md5']
+        defaults["scaled_at_{}".format(size_name)] = path
+        defaults["scaled_at_{}_md5".format(img["size_name"])] = img["md5"]
 
     image, created = models.Image.objects.update_or_create(
-        camera=camera,
-        shot_at=shot_at,
-        defaults=defaults,
+        camera=camera, shot_at=shot_at, defaults=defaults
     )
     if created:
-        print(' ==> created {} {}'.format(size_name, filename))
+        print(" ==> created {} {}".format(size_name, filename))
     else:
-        print(' ==> updated {} {}'.format(size_name, filename))
+        print(" ==> updated {} {}".format(size_name, filename))
     return image, created
 
 
 def create_thumbnail(image, size):
     total = 2
-    with eliot.start_action(action_type='timelapse:image:create_thumbnail', size=size, image=str(image.pk)) as action:
+    with eliot.start_action(
+        action_type="timelapse:image:create_thumbnail", size=size, image=str(image.pk)
+    ) as action:
         if not image.original:
-            raise Exception('missing original')
+            raise Exception("missing original")
         thumbnailer = easy_thumbnails.files.get_thumbnailer(image.original)
-        size_tuple = tuple([int(sz) for sz in size.split('x')])
-        options = {
-            'size': size_tuple,
-            'upscale': False,
-        }
+        size_tuple = tuple([int(sz) for sz in size.split("x")])
+        options = {"size": size_tuple, "upscale": False}
         thumb = thumbnailer.generate_thumbnail(options)
-        eliot.Message.log(message_type='thumbnail-generated', progress={'done': 1, 'total': total})
+        eliot.Message.log(
+            message_type="thumbnail-generated", progress={"done": 1, "total": total}
+        )
         content_file = thumb.file
-        content_file.name = 'afile.jpg'
+        content_file.name = "afile.jpg"
         content_file.seek(0)
         md5sum = hashlib.md5(content_file.read()).hexdigest()
-        eliot.Message.log(message_type='md5-generated', progress={'done': 2, 'total': total})
+        eliot.Message.log(
+            message_type="md5-generated", progress={"done": 2, "total": total}
+        )
         content_file.seek(0)
-        setattr(image, 'scaled_at_{}'.format(size), content_file)
-        setattr(image, 'scaled_at_{}_md5'.format(size), md5sum)
+        setattr(image, "scaled_at_{}".format(size), content_file)
+        setattr(image, "scaled_at_{}_md5".format(size), md5sum)
 
 
 def create_thumbnails(image, force=False):
     total = len(image.sizes)
-    with eliot.start_action(action_type='timelapse:image:create_thumbnails', image=str(image.pk)) as action:
+    with eliot.start_action(
+        action_type="timelapse:image:create_thumbnails", image=str(image.pk)
+    ) as action:
         for idx, size in enumerate(image.sizes, start=1):
-            if force or not getattr(image, 'scaled_at_{}'.format(size)):
+            if force or not getattr(image, "scaled_at_{}".format(size)):
                 create_thumbnail(image, size)
-                eliot.Message.log(message_type='progress', size=size, progress={'done': idx, 'total': total})
+                eliot.Message.log(
+                    message_type="progress",
+                    size=size,
+                    progress={"done": idx, "total": total},
+                )
             else:
-                eliot.Message.log(message_type='progress', size=size, alread_exists=True, progress={'done': idx, 'total': total})
+                eliot.Message.log(
+                    message_type="progress",
+                    size=size,
+                    alread_exists=True,
+                    progress={"done": idx, "total": total},
+                )
 
 
 def set_keyframes_for_day(day):
     day.cover = models.Image.objects.pick_closest(
         stream=day.stream,
         shot_at=datetime.datetime.combine(day.date, datetime.time(16, 0)),
-        max_difference=datetime.timedelta(hours=2)
+        max_difference=datetime.timedelta(hours=2),
     )
     day.save()
     keyframes = [
@@ -272,7 +273,7 @@ def set_keyframes_for_day(day):
         image = models.Image.objects.pick_closest(
             stream=day.stream,
             shot_at=datetime.datetime.combine(day.date, keyframe),
-            max_difference=datetime.timedelta(hours=1)
+            max_difference=datetime.timedelta(hours=1),
         )
         if image:
             images.append(image)
@@ -282,15 +283,12 @@ def set_keyframes_for_day(day):
 def image_count_by_type():
     qs = models.Image.objects.all()
     data = {
-        '160x120': qs.exclude(scaled_at_160x120='').count(),
-        '320x240': qs.exclude(scaled_at_320x240='').count(),
-        '640x480': qs.exclude(scaled_at_640x480='').count(),
-        'original': qs.exclude(original='').count(),
+        "160x120": qs.exclude(scaled_at_160x120="").count(),
+        "320x240": qs.exclude(scaled_at_320x240="").count(),
+        "640x480": qs.exclude(scaled_at_640x480="").count(),
+        "original": qs.exclude(original="").count(),
     }
-    return '  '.join([
-         '{}: {}'.format(key, value)
-         for key, value in data.items()
-    ])
+    return "  ".join(["{}: {}".format(key, value) for key, value in data.items()])
 
 
 def create_frames_for_movie_rendering(movie_rendering):
@@ -298,9 +296,7 @@ def create_frames_for_movie_rendering(movie_rendering):
     number = 0
     for timestamp in movie_rendering.wanted_frame_timestamps:
         frame = Frame(
-            movie_rendering=movie_rendering,
-            number=number,
-            realtime_timestamp=timestamp,
+            movie_rendering=movie_rendering, number=number, realtime_timestamp=timestamp
         )
         frame.pick_image()
         frame.save()
@@ -309,16 +305,17 @@ def create_frames_for_movie_rendering(movie_rendering):
 
 def render_movie(movie_rendering):
     from . import moviepy
+
     if not movie_rendering.frames.all().exists():
         movie_rendering.create_frames()
     moviepath = moviepy.render_video(
-        queryset=movie_rendering.frames.all().select_related('image'),
+        queryset=movie_rendering.frames.all().select_related("image"),
         size=movie_rendering.size,
         format=movie_rendering.format,
         fps=movie_rendering.fps,
         duration=movie_rendering.movie.movie_duration.total_seconds(),
     )
-    with open(moviepath, 'rb') as f:
+    with open(moviepath, "rb") as f:
         md5sum = hashlib.md5(f.read()).hexdigest()
         f.seek(0)
         movie_rendering.file_md5 = md5sum
@@ -329,70 +326,77 @@ def render_movie(movie_rendering):
 
 def delete_thumbnails(qs):
     for image in qs.iterator():
-        print('handling {}'.format(image.name))
+        print("handling {}".format(image.name))
         for size in image.sizes:
-            size_field_name = 'scaled_at_{}'.format(size)
-            size_field_md5_name = 'scaled_at_{}_md5'.format(size)
+            size_field_name = "scaled_at_{}".format(size)
+            size_field_md5_name = "scaled_at_{}_md5".format(size)
             image_size = getattr(image, size_field_name)
             if image_size:
-                print('  -> deleting {}'.format(image_size.url))
+                print("  -> deleting {}".format(image_size.url))
                 image_size.delete()
-                setattr(image, size_field_md5_name, '')
+                setattr(image, size_field_md5_name, "")
         image.save()
 
 
 def set_image_name_based_on_original_filename(qs):
     for image in qs:
         if not image.original:
-            print('skipping {}. missing original'.format(image))
-        name = utils.image_url_to_structured_data(image.original.url)['name']
+            print("skipping {}. missing original".format(image))
+        name = utils.image_url_to_structured_data(image.original.url)["name"]
         if name != image.name:
-            print('changing {} to {}'.format(image.name, name))
+            print("changing {} to {}".format(image.name, name))
             image.name = name
             image.save()
         else:
-            print('skipping {}. name already correct')
+            print("skipping {}. name already correct")
 
 
 def import_images(stream, storage, path):
-    with eliot.start_action(action_type='timelapse:images:import') as action:
+    with eliot.start_action(action_type="timelapse:images:import") as action:
         dirs, file_names = storage.listdir(path)
         total = len(file_names)
         # FIXME: file_name should be combination of path and dir
         for idx, file_name in enumerate(file_names):
-            if not file_name.lower().endswith('.jpg'):
+            if not file_name.lower().endswith(".jpg"):
                 continue
             import_image(stream, storage, file_name)
-            eliot.Message.log(progress={'done': idx, 'total': total})
+            eliot.Message.log(progress={"done": idx, "total": total})
 
 
 def import_image(stream, storage, path):
-    with eliot.start_action(action_type='timelapse:image:import') as action:
+    with eliot.start_action(action_type="timelapse:image:import") as action:
         total = 5
         eliot.Message.log(source=path)
         # image_path = '/'.join([path, path]).lstrip('/')
         with storage.open(path) as image_file:
-            eliot.Message.log(message_type='file-opened', progress={'done': 1, 'total': total})
+            eliot.Message.log(
+                message_type="file-opened", progress={"done": 1, "total": total}
+            )
             shot_at = utils.datetime_from_exif(image_file)
-            eliot.Message.log(message_type='date-extracted', progress={'done': 2, 'total': total})
+            eliot.Message.log(
+                message_type="date-extracted", progress={"done": 2, "total": total}
+            )
             md5sum = utils.md5sum_from_fileobj(image_file)
-            eliot.Message.log(message_type='md5-generated', progress={'done': 3, 'total': total})
-            print(shot_at, end='  ')
-            image, created = (
-                models.Image.objects
-                .update_or_create(
-                    stream=stream,
-                    shot_at=shot_at,
-                    defaults=dict(
-                        name=path,  # FIXME: only filename from path!
-                        original_md5=md5sum,
-                    ),
-                )
+            eliot.Message.log(
+                message_type="md5-generated", progress={"done": 3, "total": total}
             )
-            eliot.Message.log(message_type='model-saved', created=created, progress={'done': 4, 'total': total})
-            upload_to_name = upload_to_image(image, size='original')
-            image.original.save(
-                upload_to_name,
-                image_file,
+            print(shot_at, end="  ")
+            image, created = models.Image.objects.update_or_create(
+                stream=stream,
+                shot_at=shot_at,
+                defaults=dict(
+                    name=path, original_md5=md5sum  # FIXME: only filename from path!
+                ),
             )
-            eliot.Message.log(message_type='image-saved', destination=upload_to_name, progress={'done': 5, 'total': total})
+            eliot.Message.log(
+                message_type="model-saved",
+                created=created,
+                progress={"done": 4, "total": total},
+            )
+            upload_to_name = upload_to_image(image, size="original")
+            image.original.save(upload_to_name, image_file)
+            eliot.Message.log(
+                message_type="image-saved",
+                destination=upload_to_name,
+                progress={"done": 5, "total": total},
+            )

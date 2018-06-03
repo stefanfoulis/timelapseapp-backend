@@ -4,16 +4,14 @@ import uuid
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import JsonWebsocketConsumer
 
-
-PROGRESS_GROUP_NAME = 'progress_group'
+PROGRESS_GROUP_NAME = "progress_group"
 
 
 class ProgressConsumer(JsonWebsocketConsumer):
     def connect(self):
         self.progress_group_name = PROGRESS_GROUP_NAME
         async_to_sync(self.channel_layer.group_add)(
-            group=self.progress_group_name,
-            channel=self.channel_name
+            group=self.progress_group_name, channel=self.channel_name
         )
         self.accept()
         # self.send_json(
@@ -36,8 +34,7 @@ class ProgressConsumer(JsonWebsocketConsumer):
     def disconnect(self, close_code):
         # Leave room group
         async_to_sync(self.channel_layer.group_discard)(
-            self.progress_group_name,
-            self.channel_name
+            self.progress_group_name, self.channel_name
         )
 
     def receive_json(self, content):

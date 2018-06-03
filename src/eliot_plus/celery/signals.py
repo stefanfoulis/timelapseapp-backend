@@ -1,13 +1,12 @@
+import eliot
 from celery.signals import (
-    before_task_publish,
     after_task_publish,
-    task_prerun,
-    task_postrun,
+    before_task_publish,
     task_failure,
+    task_postrun,
+    task_prerun,
 )
 from celery.states import SUCCESS
-
-import eliot
 
 from . import messages
 
@@ -37,32 +36,32 @@ def task_pre_queued(sender, signal, **kwargs):
 
 @after_task_publish.connect
 def task_queued(sender, signal, **kwargs):
-    print('TASK  QUEUED (after_task_publish)')
-    task_kwargs = kwargs['body'][1]
-    eliot_celery_task_uuid = task_kwargs['eliot_celery_task_uuid']
+    print("TASK  QUEUED (after_task_publish)")
+    task_kwargs = kwargs["body"][1]
+    eliot_celery_task_uuid = task_kwargs["eliot_celery_task_uuid"]
     action = eliot.Action.continue_task(task_id=eliot_celery_task_uuid)
     messages.CeleryQueuedSignal.log()
-    task_kwargs['eliot_celery_task_uuid'] = action.serialize_task_id().decode('ascii')
+    task_kwargs["eliot_celery_task_uuid"] = action.serialize_task_id().decode("ascii")
 
 
 @task_prerun.connect
 def task_start(sender, signal, **kwargs):
-    print('TASK  START (task_prerun)')
+    print("TASK  START (task_prerun)")
 
-    task_kwargs = kwargs['kwargs']
-    eliot_celery_task_uuid = task_kwargs['eliot_celery_task_uuid']
+    task_kwargs = kwargs["kwargs"]
+    eliot_celery_task_uuid = task_kwargs["eliot_celery_task_uuid"]
     action = eliot.Action.continue_task(task_id=eliot_celery_task_uuid)
-    messages.CeleryStartedSignal.log(hi='there')
-    task_kwargs['eliot_celery_task_uuid'] = action.serialize_task_id().decode('ascii')
+    messages.CeleryStartedSignal.log(hi="there")
+    task_kwargs["eliot_celery_task_uuid"] = action.serialize_task_id().decode("ascii")
 
 
 @task_postrun.connect
 def task_complete(sender, signal, **kwargs):
-    print('TASK  COMPLETE (task_postrun)')
-    task_kwargs = kwargs['kwargs']
-    eliot_celery_task_uuid = task_kwargs['eliot_celery_task_uuid']
+    print("TASK  COMPLETE (task_postrun)")
+    task_kwargs = kwargs["kwargs"]
+    eliot_celery_task_uuid = task_kwargs["eliot_celery_task_uuid"]
     action = eliot.Action.continue_task(task_id=eliot_celery_task_uuid)
-    task_kwargs['eliot_celery_task_uuid'] = action.serialize_task_id().decode('ascii')
+    task_kwargs["eliot_celery_task_uuid"] = action.serialize_task_id().decode("ascii")
 
     # FIXME: check return state from celery if the finish was sucessful
     action.finish()
@@ -70,16 +69,16 @@ def task_complete(sender, signal, **kwargs):
 
 @task_failure.connect
 def task_failure(sender=None, signal=None, **kwargs):
-    print('TASK  FAILURE (task_failure)')
+    print("TASK  FAILURE (task_failure)")
 
-    task_kwargs = kwargs['kwargs']
-    eliot_celery_task_uuid = task_kwargs['eliot_celery_task_uuid']
+    task_kwargs = kwargs["kwargs"]
+    eliot_celery_task_uuid = task_kwargs["eliot_celery_task_uuid"]
     action = eliot.Action.continue_task(task_id=eliot_celery_task_uuid)
     messages.CeleryStartedSignal.log()
-    task_kwargs['eliot_celery_task_uuid'] = action.serialize_task_id().decode('ascii')
+    task_kwargs["eliot_celery_task_uuid"] = action.serialize_task_id().decode("ascii")
 
     # FIXME: return error state from celery
-    action.finish('something fucked up')
+    action.finish("something fucked up")
 
 
 # FIXME: add task_revoked, task_unknown, task_rejected and possibly more from

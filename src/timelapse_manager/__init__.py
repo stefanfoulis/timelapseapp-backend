@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-default_app_config = 'timelapse_manager.apps.TimelapseManager'
+default_app_config = "timelapse_manager.apps.TimelapseManager"
