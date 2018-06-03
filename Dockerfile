@@ -10,16 +10,23 @@ RUN /stack/imageopt/install.sh
 COPY stack/moviepy /stack/moviepy
 RUN /stack/moviepy/install.sh
 
+RUN pipsi install --python=python3 pipenv
+RUN pipsi install --python=python3 black
+RUN pipsi install --python=python3 isort
+
 ENV PYTHONPATH=/app/src:/app:$PYTHONPATH
 
-# <PYTHON>
 ENV PIP_INDEX_URL=${PIP_INDEX_URL:-https://wheels.aldryn.net/v1/aldryn-extras+pypi/${WHEELS_PLATFORM:-aldryn-baseproject-py3}/+simple/} \
     WHEELSPROXY_URL=${WHEELSPROXY_URL:-https://wheels.aldryn.net/v1/aldryn-extras+pypi/${WHEELS_PLATFORM:-aldryn-baseproject-py3}/}
-COPY requirements.* /app/
+ENV WORKON_HOME=/virtualenvs
+COPY Pipfile* /app/
 COPY addons-dev /app/addons-dev/
-RUN pip-reqs compile
-RUN pip-reqs resolve && pip install --no-index --no-deps --requirement requirements.urls
-# </PYTHON>
+RUN set -ex && pipenv install --deploy --system
+
+#COPY requirements.* /app/
+#COPY addons-dev /app/addons-dev/
+#RUN pip-reqs compile
+#RUN pip-reqs resolve && pip install --no-index --no-deps --requirement requirements.urls
 
 
 # <SOURCE>

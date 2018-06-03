@@ -1,0 +1,43 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+"875fba4" = {path = "/app/addons-dev/django-addons", editable = true}
+"d665ef4" = {path = "/app/addons-dev/django-addons-formlib", editable = true}
+"090e0b3" = {path = "/app/addons-dev/django-addon", editable = true}
+"a9bdcad" = {path = "/app/addons-dev/django-celery-addon", editable = true}
+ipython = "*"
+ipdb = "*"
+dateparser = "*"
+recurrent = "*"
+django-taggit = "*"
+django-extended-choices = "*"
+moviepy = "*"
+djangorestframework = "*"
+django-filter = "*"
+django-crispy-forms = "*"
+graphene = "*"
+django-graphiql = "*"
+graphene-django = "*"
+django-denorm = "*"
+django-fsm = "*"
+channels = "*"
+channels-redis = "*"
+redis = "*"
+cryptography = "*"
+eliot = "*"
+eliot-tree = "*"
+"boto3" = "*"
+furl = "*"
+django-click = "*"
+ExifRead = "*"
+Markdown = "*"
+YURL = "*"
+django-extensions = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.6"
