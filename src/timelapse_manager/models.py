@@ -424,6 +424,10 @@ class VideoClip(UUIDAuditedModel):
         return self.images.count()
 
 
+class Movie(UUIDAuditedModel):
+    name = models.CharField(max_length=255, default='', blank=True)
+
+
 class MovieRendering(UUIDAuditedModel):
     movie = models.ForeignKey(
         Movie, related_name="renderings", on_delete=models.PROTECT

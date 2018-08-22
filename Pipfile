@@ -16,7 +16,8 @@ django-taggit = "*"
 django-extended-choices = "*"
 moviepy = "*"
 djangorestframework = "*"
-django-filter = "*"
+# graphene-django==2.1.0 requires django-filter<2
+django-filter = "<2"
 django-crispy-forms = "*"
 graphene = "*"
 django-graphiql = "*"
@@ -36,8 +37,17 @@ ExifRead = "*"
 Markdown = "*"
 YURL = "*"
 django-extensions = "*"
+"ab54f81" = {editable = true, path = "./addons-dev/django-addons"}
+"3188643" = {editable = true, path = "./addons-dev/django-addons-formlib"}
+"9757829" = {editable = true, path = "./addons-dev/django-addon"}
+django-celery-addon = {editable = true, path = "./addons-dev/django-celery-addon"}
 
 [dev-packages]
 
 [requires]
+# We can't go to python 3.7 yet.
+# graphene-django -> django-filters<2. django-filters>2 is needed for Django 2.1.
+# Django 2.1 is needed for python 3.7.
+# http://docs.graphene-python.org/projects/django/en/latest/filtering/#filtering
+# https://github.com/graphql-python/graphene-django/issues/464
 python_version = "3.6"

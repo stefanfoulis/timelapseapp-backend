@@ -213,13 +213,13 @@ class DayAdmin(admin.ModelAdmin):
     image_counts_html.short_description = "image counts"
 
 
-@admin.register(models.Tag)
+# @admin.register(models.Tag)
 class TagAdmin(admin.ModelAdmin):
     list_display = ("tag_info", "start_at", "end_at", "duration", "image_count")
     readonly_fields = ("image_count", "duration")
 
 
-@admin.register(models.TagInfo)
+# @admin.register(models.TagInfo)
 class TagInfoAdmin(admin.ModelAdmin):
     pass
 
