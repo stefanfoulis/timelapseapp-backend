@@ -231,11 +231,9 @@ class Image(UUIDAuditedModel):
         return getattr(self, "scaled_at_{}".format(size))
 
 
-class Tag(UUIDAuditedModel):
-    stream = models.ForeignKey(Stream, related_name="tags", on_delete=models.PROTECT)
-    tag_info = models.ForeignKey(
-        "TagInfo", related_name="tags", on_delete=models.PROTECT
-    )
+class TagTimerange(UUIDAuditedModel):
+    stream = models.ForeignKey(Stream, related_name="tag_timeranges", on_delete=models.PROTECT)
+    tag = models.ForeignKey("Tag", related_name="tag_timeranges", on_delete=models.PROTECT)
     start_at = models.DateTimeField()
     end_at = models.DateTimeField()
 
@@ -250,16 +248,8 @@ class Tag(UUIDAuditedModel):
         if not (self.start_at and self.end_at):
             return Image.objects.empty()
         return Image.objects.filter(
-            camera=self.camera, shot_at__gte=self.start_at, shot_at__lte=self.end_at
+            stream=self.stream, shot_at__gte=self.start_at, shot_at__lte=self.end_at
         )
-
-    def tag_info(self):
-        return TagInfo.objects.get_or_create(name=self.name)[0]
-
-    def save(self, *args, **kwargs):
-        r = super(Tag, self).save(*args, **kwargs)
-        TagInfo.objects.get_or_create(name=self.name)
-        return r
 
     @property
     def duration(self):
@@ -280,7 +270,7 @@ class Tag(UUIDAuditedModel):
         )
 
 
-class TagInfo(UUIDAuditedModel):
+class Tag(UUIDAuditedModel):
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, default="")
 
@@ -360,13 +350,13 @@ class Day(UUIDAuditedModel):
         actions.discover_images_on_day(steam=self.stream, day_name=str(self.date))
 
 
-class Movie(UUIDAuditedModel):
-    camera = models.ForeignKey(Camera, related_name="movies", on_delete=models.PROTECT)
+class VideoClip(UUIDAuditedModel):
+    stream = models.ForeignKey(Stream, related_name="video_clips", on_delete=models.PROTECT)
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, default=None)
 
     speed_factor = models.FloatField(default=4000.0)
-    tags = models.ManyToManyField(TagInfo, related_name="movies", blank=True)
+    tags = models.ManyToManyField(Tag, related_name="video_clips", blank=True)
 
     class Meta:
         ordering = ("name",)
@@ -375,14 +365,13 @@ class Movie(UUIDAuditedModel):
         return self.name
 
     @property
-    def tag_instances(self):
-        tag_names = self.tags.values_list("name", flat=True)
-        return Tag.objects.filter(name__in=tag_names)
+    def tag_timeranges(self):
+        return TagTimerange.objects.filter(tag__in=self.tags.all())
 
     @property
     def sequence_union(self):
         # adapted from http://stackoverflow.com/a/15273749/245810
-        ranges = self.tag_instances.values_list("start_at", "end_at")
+        ranges = self.tag_timeranges.values_list("start_at", "end_at")
         union = []
         for begin, end in sorted(ranges):
             # TODO: make sure not using ">= begin-1" is ok
@@ -406,7 +395,7 @@ class Movie(UUIDAuditedModel):
     @property
     def images(self):
         union_ranges = self.sequence_union
-        qs = Image.objects.filter(camera=self.camera)
+        qs = Image.objects.filter(stream=self.stream)
         q = Q(name__isnull=True)  # it is always false
         for start_at, end_at in union_ranges:
             q = q | Q(shot_at__gte=start_at, shot_at__lte=end_at)
