@@ -23,6 +23,7 @@ INSTALLED_APPS.extend([
     'rest_framework',
     'rest_framework.authtoken',
     'easy_thumbnails',
+    # 'django_extensions',
 ])
 
 THUMBNAIL_OPTIMIZE_COMMAND = {
