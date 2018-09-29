@@ -88,9 +88,6 @@ class StreamNode(DjangoObjectType):
     latest_image = graphene.Field(ImageNode)
 
     def resolve_latest_image(self, info):
-        import ipdb
-
-        ipdb.set_trace()
         return (
             models.Image.objects.exclude(
                 Q(original="")
