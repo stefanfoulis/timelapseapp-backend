@@ -1,4 +1,4 @@
-FROM stefanfoulis/python:3.7-stretch-v1.4
+FROM stefanfoulis/python:3.6-stretch-v1.4
 
 COPY stack/timelapse /stack/timelapse
 RUN /stack/timelapse/install.sh

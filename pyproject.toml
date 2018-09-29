@@ -5,7 +5,12 @@ description = ""
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+# Known reasons why python 3.7 is not supported yet:
+# - celery
+#   Will supposidly be fixed in celery 4.3 and 5.0.
+#   https://github.com/celery/celery/issues/4849#issuecomment-423181626
+#   https://github.com/celery/celery/milestone/20
+python = "^3.6"
 Django = "^2.1"
 
 # GraphQL and REST api dependencies
