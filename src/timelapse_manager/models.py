@@ -218,7 +218,7 @@ class Image(UUIDAuditedModel):
     @property
     def tags(self):
         return Tag.objects.filter(
-            camera=self.camera, start_at__lte=self.shot_at, end_at__gte=self.shot_at
+            camera=self.camera, at__contains=self.shot_at
         )
 
     def get_file_for_size(self, size):
