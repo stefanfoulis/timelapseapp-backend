@@ -9,11 +9,11 @@ from . import models
 class DayFilter(django_filters.FilterSet):
     date = django_filters.DateFilter(lookup_expr="iexact")
     date_year = django_filters.NumberFilter(field_name="date", lookup_expr="year")
-    date_year__gt = django_filters.NumberFilter(
-        field_name="date", lookup_expr="year__gt"
+    date_year_gte = django_filters.NumberFilter(
+        field_name="date", lookup_expr="year__gte"
     )
-    date_year__lt = django_filters.NumberFilter(
-        field_name="date", lookup_expr="year__lt"
+    date_year_lte = django_filters.NumberFilter(
+        field_name="date", lookup_expr="year__lte"
     )
 
     class Meta:
@@ -23,11 +23,14 @@ class DayFilter(django_filters.FilterSet):
 
 
 class ImageFilter(django_filters.FilterSet):
+    shot_at_gte = django_filters.DateTimeFilter(field_name="shot_at", lookup_expr="gte")
+    shot_at_lte = django_filters.DateTimeFilter(field_name="shot_at", lookup_expr="lte")
+
     class Meta:
         model = models.Image
         fields = {
             "name": ["exact", "icontains", "istartswith"],
-            "shot_at": ["exact", "icontains", "istartswith"],
+            "shot_at": ["exact"],
             "original": ["icontains", "istartswith"],
             "original_md5": ["exact", "icontains", "istartswith"],
         }
