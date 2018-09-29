@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 import graphene
+from graphene import ObjectType
 from graphene.relay import Node
 from graphene_django.debug import DjangoDebug
 
 import timelapse_manager.schema
+import timelapse_manager.mutations
 
 
 class Query(timelapse_manager.schema.Query, graphene.ObjectType):
@@ -11,8 +13,13 @@ class Query(timelapse_manager.schema.Query, graphene.ObjectType):
     node = Node.Field()
 
 
+class Mutation(ObjectType):
+    create_thumbnails_for_image = timelapse_manager.mutations.GenerateThumbnails.Field()
+
+
 schema = graphene.Schema(
     query=Query,
+    mutation=Mutation,
     types=[
         timelapse_manager.schema.UserNode,
         timelapse_manager.schema.DayNode,
