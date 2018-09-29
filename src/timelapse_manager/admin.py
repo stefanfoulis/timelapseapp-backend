@@ -19,11 +19,21 @@ class CameraControllerAdmin(admin.ModelAdmin):
 
 @admin.register(models.Camera)
 class CameraAdmin(admin.ModelAdmin):
-    pass
+    raw_id_fields = (
+        "controller",
+        "active_image_stream",
+    )
 
 
 @admin.register(models.Stream)
 class StreamAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'name',
+    )
+    raw_id_fields = (
+        "cover_image",
+    )
     actions = (
         "create_days_for_existing_images_action",
         "create_days_for_oldest_existing_image_until_today_action",
@@ -88,6 +98,9 @@ class ImageAdmin(admin.ModelAdmin):
         # 'scaled_at_640x480',
         # 'scaled_at_640x480',
     )
+    raw_id_fields = (
+        "stream",
+    )
     actions = ("create_thumbnails_action",)
 
     def create_thumbnails_action(self, request, queryset):
@@ -123,8 +136,11 @@ class DayAdmin(admin.ModelAdmin):
         "discover_images_action",
         "discover_images_and_process_action",
     )
-    raw_id_fields = ("cover",)
-    fields = ("stream", "date", "cover")
+    raw_id_fields = (
+        "stream",
+        "cover",
+        "key_frames",
+    )
     ordering = ("-date",)
     list_filter = ("stream",)
     date_hierarchy = "date"

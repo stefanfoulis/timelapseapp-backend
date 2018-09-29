@@ -271,7 +271,7 @@ class TagTimerange(UUIDAuditedModel):
 
 
 class Tag(UUIDAuditedModel):
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255, unique=True, default="")
     description = models.TextField(blank=True, default="")
 
     def __str__(self):

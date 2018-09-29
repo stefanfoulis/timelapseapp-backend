@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import collections
 import datetime
+
+import dateparser
 import hashlib
 import os
 
@@ -16,15 +18,15 @@ from . import models, utils
 
 
 def discover_images_on_day(
-    stream, day_name, sizes=None, storage=timelapse_storage, basedir=""
+    stream, stream_dir, day_name, sizes=None, storage=timelapse_storage
 ):
+    models.Day.objects.get_or_create(date=dateparser.parse(day_name), stream=stream)
     sizes = sizes or ("original", "640x480", "320x240", "160x120")
     data = collections.defaultdict(dict)
-    camera_basedir = os.path.join(basedir, stream.name)
-    for size_name in storage.listdir(camera_basedir)[0]:
+    for size_name in storage.listdir(stream_dir)[0]:
         if size_name not in sizes:
             continue
-        size_basedir = os.path.join(camera_basedir, size_name)
+        size_basedir = os.path.join(stream_dir, size_name)
         day_basedir = os.path.join(size_basedir, day_name)
         try:
             imagenames = storage.listdir(day_basedir)[1]
@@ -38,7 +40,7 @@ def discover_images_on_day(
             if not imagename.lower().endswith(".jpg"):
                 continue
             shot_at = utils.datetime_from_filename(imagename)
-            imgdata = data[(stream.name, shot_at)]
+            imgdata = data[(str(stream.id), shot_at)]
             imagepath = os.path.join(day_basedir, imagename)
 
             imgdata["shot_at"] = shot_at
@@ -65,8 +67,8 @@ def discover_images_on_day(
 
 def discover_images(
     storage=timelapse_storage,
-    basedir="",
-    limit_cameras=None,
+    stream_dir="",
+    stream=None,
     limit_days=None,
     sizes=None,
 ):
@@ -74,50 +76,40 @@ def discover_images(
     directory relative to default storage root
     """
     sizes = sizes or ("original", "640x480", "320x240", "160x120")
-    limit_camera_names = [
-        camera.name if isinstance(camera, models.Camera) else camera
-        for camera in limit_cameras
-    ]
-    for camera_name in storage.listdir(basedir)[0]:
-        print(camera_name)
-        if limit_camera_names and camera_name not in limit_camera_names:
+    if stream is None:
+        stream = models.Stream.objects.create(name=stream_dir)
+    elif not isinstance(stream, models.Stream):
+        stream = models.Stream.objects.get(id=stream)
+    print(stream_dir)
+    days = set()
+    for size_name in storage.listdir(stream_dir)[0]:
+        print(size_name)
+        if size_name not in sizes:
             continue
+        size_basedir = os.path.join(stream_dir, size_name)
+        print(size_basedir)
         try:
-            camera = models.Camera.objects.get(name=camera_name)
-        except models.Camera.DoesNotExist:
-            continue
-        print(camera)
-        camera_basedir = os.path.join(basedir, camera_name)
-        print(camera_basedir)
-        days = set()
-        for size_name in storage.listdir(camera_basedir)[0]:
-            print(size_name)
-            if size_name not in sizes:
-                continue
-            size_basedir = os.path.join(camera_basedir, size_name)
-            print(size_basedir)
-            try:
-                day_names = storage.listdir(size_basedir)[0]
-            except OSError:
-                # the local filesystem storage fails when trying to list a
-                # directory that does not exist. S3 storage just returns an
-                # empty list. unfortunatly storage.exists() does not work on
-                # S3, as it returns False for directories.
-                day_names = []
-            for day_name in day_names:
-                print(day_name)
-                if limit_days and not day_name in limit_days:
-                    continue
-                days.add(day_name)
-        for day_name in days:
+            day_names = storage.listdir(size_basedir)[0]
+        except OSError:
+            # the local filesystem storage fails when trying to list a
+            # directory that does not exist. S3 storage just returns an
+            # empty list. Unfortunatly storage.exists() does not work on
+            # S3, as it returns False for directories.
+            day_names = []
+        for day_name in day_names:
             print(day_name)
-            discover_images_on_day(
-                camera=camera,
-                day_name=day_name,
-                sizes=sizes,
-                storage=storage,
-                basedir=basedir,
-            )
+            if limit_days and not day_name in limit_days:
+                continue
+            days.add(day_name)
+    for day_name in days:
+        print(day_name)
+        discover_images_on_day(
+            stream=stream,
+            day_name=day_name,
+            sizes=sizes,
+            storage=storage,
+            stream_dir=stream_dir,
+        )
 
 
 def create_or_update_images_from_urls(urls):

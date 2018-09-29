@@ -215,7 +215,7 @@ def upload_to_image(instance, filename=None, size=None):
         md5sum = getattr(instance, "{}_md5".format(size))
     else:
         md5sum = getattr(instance, "scaled_at_{}_md5".format(size))
-    file_name = f"{instance.stream_id}.{shot_at}.{size}.{md5sum}.{instance.name}"
+    file_name = f"{instance.stream_id}.{shot_at}.{size}.{md5sum}.{instance.name}.jpg"
     return f"streams/{instance.stream_id}/{size}/{day}/{file_name}"
 
 
