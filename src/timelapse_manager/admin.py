@@ -19,21 +19,13 @@ class CameraControllerAdmin(admin.ModelAdmin):
 
 @admin.register(models.Camera)
 class CameraAdmin(admin.ModelAdmin):
-    raw_id_fields = (
-        "controller",
-        "active_image_stream",
-    )
+    raw_id_fields = ("controller", "active_image_stream")
 
 
 @admin.register(models.Stream)
 class StreamAdmin(admin.ModelAdmin):
-    list_display = (
-        'id',
-        'name',
-    )
-    raw_id_fields = (
-        "cover_image",
-    )
+    list_display = ("id", "name")
+    raw_id_fields = ("cover_image",)
     actions = (
         "create_days_for_existing_images_action",
         "create_days_for_oldest_existing_image_until_today_action",
@@ -98,9 +90,7 @@ class ImageAdmin(admin.ModelAdmin):
         # 'scaled_at_640x480',
         # 'scaled_at_640x480',
     )
-    raw_id_fields = (
-        "stream",
-    )
+    raw_id_fields = ("stream",)
     actions = ("create_thumbnails_action",)
 
     def create_thumbnails_action(self, request, queryset):
@@ -136,11 +126,7 @@ class DayAdmin(admin.ModelAdmin):
         "discover_images_action",
         "discover_images_and_process_action",
     )
-    raw_id_fields = (
-        "stream",
-        "cover",
-        "key_frames",
-    )
+    raw_id_fields = ("stream", "cover", "key_frames")
     ordering = ("-date",)
     list_filter = ("stream",)
     date_hierarchy = "date"
@@ -189,9 +175,7 @@ class DayAdmin(admin.ModelAdmin):
                 img_src=image.scaled_at_160x120.url
             )
         else:
-            img_html = (
-                '<div style="display: inline-block; border: 1px dashed gray; width: 160px; height: 120px; text-align: center">thumbnail missing</div>'
-            )
+            img_html = '<div style="display: inline-block; border: 1px dashed gray; width: 160px; height: 120px; text-align: center">thumbnail missing</div>'
         if image.original:
             img_html = '<a href="{link}">{img_html}</a>'.format(
                 link=image.original.url, img_html=img_html
@@ -206,9 +190,7 @@ class DayAdmin(admin.ModelAdmin):
                     image.scaled_at_160x120.url
                 )
             else:
-                html = (
-                    '<div style="display: inline-block; border: 1px dashed gray; width: 160px; height: 120px; text-align: center">thumbnail missing</div>'
-                )
+                html = '<div style="display: inline-block; border: 1px dashed gray; width: 160px; height: 120px; text-align: center">thumbnail missing</div>'
             if image.original:
                 html = '<a href="{link}">{img_html}</a>'.format(
                     link=image.original.url, img_html=html
@@ -236,15 +218,9 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(models.TagTimerange)
 class TagTimerangeAdmin(admin.ModelAdmin):
-    list_display = (
-        'tag',
-        'at',
-    )
+    list_display = ("tag", "at")
     readonly_fields = ("image_count", "duration")
-    raw_id_fields = (
-        'stream',
-        'tag',
-    )
+    raw_id_fields = ("stream", "tag")
 
 
 class MovieRenderingInline(admin.TabularInline):
@@ -361,9 +337,7 @@ class FrameAdmin(admin.ModelAdmin):
         if obj.image.scaled_at_160x120:
             return '<img src="{}" />'.format(obj.image.scaled_at_160x120.url)
         else:
-            return (
-                '<div style="width: 160px; height: 120px; border: 1px solid gray;"></div>'
-            )
+            return '<div style="width: 160px; height: 120px; border: 1px solid gray;"></div>'
 
     preview_html.allow_tags = True
 

@@ -9,8 +9,12 @@ from . import models
 class DayFilter(django_filters.FilterSet):
     date = django_filters.DateFilter(lookup_expr="iexact")
     date_year = django_filters.NumberFilter(field_name="date", lookup_expr="year")
-    date_year__gt = django_filters.NumberFilter(field_name="date", lookup_expr="year__gt")
-    date_year__lt = django_filters.NumberFilter(field_name="date", lookup_expr="year__lt")
+    date_year__gt = django_filters.NumberFilter(
+        field_name="date", lookup_expr="year__gt"
+    )
+    date_year__lt = django_filters.NumberFilter(
+        field_name="date", lookup_expr="year__lt"
+    )
 
     class Meta:
         model = models.Day

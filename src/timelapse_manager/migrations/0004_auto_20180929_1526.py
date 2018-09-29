@@ -6,27 +6,20 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('timelapse_manager', '0003_auto_20180929_1101'),
-    ]
+    dependencies = [("timelapse_manager", "0003_auto_20180929_1101")]
 
     operations = [
         migrations.AlterModelOptions(
-            name='tagtimerange',
-            options={'ordering': ('at',)},
+            name="tagtimerange", options={"ordering": ("at",)}
         ),
-        migrations.RemoveField(
-            model_name='tagtimerange',
-            name='end_at',
-        ),
-        migrations.RemoveField(
-            model_name='tagtimerange',
-            name='start_at',
-        ),
+        migrations.RemoveField(model_name="tagtimerange", name="end_at"),
+        migrations.RemoveField(model_name="tagtimerange", name="start_at"),
         migrations.AddField(
-            model_name='tagtimerange',
-            name='at',
-            field=django.contrib.postgres.fields.ranges.DateTimeRangeField(default=None),
+            model_name="tagtimerange",
+            name="at",
+            field=django.contrib.postgres.fields.ranges.DateTimeRangeField(
+                default=None
+            ),
             preserve_default=False,
         ),
     ]

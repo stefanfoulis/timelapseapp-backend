@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 import collections
 import datetime
-
-import dateparser
 import hashlib
 import os
 
 from django.core.files import File
 
+import dateparser
 import easy_thumbnails.files
 import eliot
 
@@ -66,11 +65,7 @@ def discover_images_on_day(
 
 
 def discover_images(
-    storage=timelapse_storage,
-    stream_dir="",
-    stream=None,
-    limit_days=None,
-    sizes=None,
+    storage=timelapse_storage, stream_dir="", stream=None, limit_days=None, sizes=None
 ):
     """
     directory relative to default storage root

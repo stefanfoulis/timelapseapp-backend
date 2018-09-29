@@ -1,9 +1,8 @@
 import datetime
 import uuid
-
-from django.contrib.postgres.fields import DateTimeRangeField
 from functools import partial
 
+from django.contrib.postgres.fields import DateTimeRangeField
 from django.db import models
 from django.db.models import Q, QuerySet
 
@@ -217,9 +216,7 @@ class Image(UUIDAuditedModel):
 
     @property
     def tags(self):
-        return Tag.objects.filter(
-            camera=self.camera, at__contains=self.shot_at
-        )
+        return Tag.objects.filter(camera=self.camera, at__contains=self.shot_at)
 
     def get_file_for_size(self, size):
         if size == "original":
@@ -234,8 +231,12 @@ class Image(UUIDAuditedModel):
 
 
 class TagTimerange(UUIDAuditedModel):
-    stream = models.ForeignKey(Stream, related_name="tag_timeranges", on_delete=models.PROTECT)
-    tag = models.ForeignKey("Tag", related_name="tag_timeranges", on_delete=models.PROTECT)
+    stream = models.ForeignKey(
+        Stream, related_name="tag_timeranges", on_delete=models.PROTECT
+    )
+    tag = models.ForeignKey(
+        "Tag", related_name="tag_timeranges", on_delete=models.PROTECT
+    )
     at = DateTimeRangeField()
 
     class Meta:
@@ -246,9 +247,7 @@ class TagTimerange(UUIDAuditedModel):
 
     @property
     def images(self):
-        return Image.objects.filter(
-            stream=self.stream, shot_at__contained_by=self.at
-        )
+        return Image.objects.filter(stream=self.stream, shot_at__contained_by=self.at)
 
     @property
     def duration(self):
@@ -350,7 +349,9 @@ class Day(UUIDAuditedModel):
 
 
 class VideoClip(UUIDAuditedModel):
-    stream = models.ForeignKey(Stream, related_name="video_clips", on_delete=models.PROTECT)
+    stream = models.ForeignKey(
+        Stream, related_name="video_clips", on_delete=models.PROTECT
+    )
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, default=None)
 
@@ -415,7 +416,7 @@ class VideoClip(UUIDAuditedModel):
 
 
 class Movie(UUIDAuditedModel):
-    name = models.CharField(max_length=255, default='', blank=True)
+    name = models.CharField(max_length=255, default="", blank=True)
 
 
 class MovieRendering(UUIDAuditedModel):
