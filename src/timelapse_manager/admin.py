@@ -229,15 +229,22 @@ class DayAdmin(admin.ModelAdmin):
     image_counts_html.short_description = "image counts"
 
 
-# @admin.register(models.Tag)
+@admin.register(models.Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ("tag_info", "start_at", "end_at", "duration", "image_count")
+    list_display = ("name",)
+
+
+@admin.register(models.TagTimerange)
+class TagTimerangeAdmin(admin.ModelAdmin):
+    list_display = (
+        'tag',
+        'at',
+    )
     readonly_fields = ("image_count", "duration")
-
-
-# @admin.register(models.TagInfo)
-class TagInfoAdmin(admin.ModelAdmin):
-    pass
+    raw_id_fields = (
+        'stream',
+        'tag',
+    )
 
 
 class MovieRenderingInline(admin.TabularInline):

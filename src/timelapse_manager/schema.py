@@ -22,10 +22,10 @@ class ImageNode(DjangoObjectType):
         model = models.Image
         interfaces = (Node,)
 
-    original_url = graphene.String(source="original")
-    scaled_at_160x120_url = graphene.String(source="scaled_at_160x120")
-    scaled_at_320x240_url = graphene.String(source="scaled_at_320x240")
-    scaled_at_640x480_url = graphene.String(source="scaled_at_640x480")
+    original_url = graphene.String()
+    scaled_at_160x120_url = graphene.String()
+    scaled_at_320x240_url = graphene.String()
+    scaled_at_640x480_url = graphene.String()
 
     def resolve_original_url(self, info):
         return get_url(self, "original")

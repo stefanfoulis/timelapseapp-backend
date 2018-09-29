@@ -1,5 +1,7 @@
 import datetime
 import uuid
+
+from django.contrib.postgres.fields import DateTimeRangeField
 from functools import partial
 
 from django.db import models
@@ -234,28 +236,25 @@ class Image(UUIDAuditedModel):
 class TagTimerange(UUIDAuditedModel):
     stream = models.ForeignKey(Stream, related_name="tag_timeranges", on_delete=models.PROTECT)
     tag = models.ForeignKey("Tag", related_name="tag_timeranges", on_delete=models.PROTECT)
-    start_at = models.DateTimeField()
-    end_at = models.DateTimeField()
+    at = DateTimeRangeField()
 
     class Meta:
-        ordering = ("start_at", "end_at")
+        ordering = ("at",)
 
     def __str__(self):
-        return f"{self.tag_info.name} ({self.start_at} - {self.end_at})"
+        return f"{self.tag.name} ({self.at.lower} - {self.at.upper})"
 
     @property
     def images(self):
-        if not (self.start_at and self.end_at):
-            return Image.objects.empty()
         return Image.objects.filter(
-            stream=self.stream, shot_at__gte=self.start_at, shot_at__lte=self.end_at
+            stream=self.stream, shot_at__contained_by=self.at
         )
 
     @property
     def duration(self):
-        if not (self.start_at and self.end_at):
+        if not (self.at and self.at.lower and self.at.upper):
             return None
-        return self.end_at - self.start_at
+        return self.at.upper - self.at.lower
 
     @property
     def image_count(self):
@@ -402,20 +401,11 @@ class VideoClip(UUIDAuditedModel):
         return qs.filter(q).distinct()
 
     @property
-    def tag_images(self):
-        # deprecated
-        qs = Image.objects.filter(camera=self.camera)
-        q = Q(name__isnull=True)  # it is always false
-        for tag in self.tag_instances:
-            q = q | tag.get_q("shot_at")
-        return qs.filter(q).distinct()
-
-    @property
     def tags_display(self):
         return ", ".join(
             [
-                "{} ({} -> {})".format(tag.name, tag.start_at, tag.end_at)
-                for tag in self.tag_instances
+                "{} ({} -> {})".format(tag.name, tag.at.lower, tag.at.upper)
+                for tag in self.tags.all()
             ]
         )
 
